@@ -34,64 +34,13 @@ def index(request):
     html_template = loader.get_template(template)
     return HttpResponse(html_template.render(context, request))
 
-
 @login_required(login_url="/login/")
-def admins(request):
-    admins = Administrator.objects.all()
-    search_query = request.GET.get('q')
-    if search_query:
-        admins = admins.filter(Q(name__icontains=search_query))
-    paginator = Paginator(admins, 50)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    context = {
-        'page_obj': page_obj,
-        "segment": "admins"
-    }
-    html_template = loader.get_template('home/administrators/administrators.html')
-    return HttpResponse(html_template.render(context, request))
-
-
-@login_required(login_url="/login/")
-def admin_create(request):
-    if request.method == 'POST':
-        form = AdminsForm(request.POST, request.FILES)
-        if form.is_valid():
-            form.save()
-            return redirect('admins')
-    else:
-        form = AdminsForm()
-
-    return render(request,
-                  'home/administrators/admin_create.html',
-                  {'form': form})
-
-
-@login_required(login_url="/login/")
-def admin_detail(request, pk):
-    admins = Administrator.objects.get(id=pk)
-
-    if request.method == 'POST':
-        form = AdminsForm(request.POST, request.FILES, instance=admins)
-        if form.is_valid():
-            form.save()
-            return redirect('admins')
-    else:
-        form = AdminsForm(instance=admins)
-
-    return render(request,
-                  'home/administrators/administrator_detail.html',
-                  {'form': form, 'segment': 'admins', 'admin': admins})
-
-
-class AdminDelete(DeleteView):
-    model = Administrator
-    fields = '__all__'
-    success_url = reverse_lazy('admins')
-
-
 def employees(request):
-    employees = Employee.objects.all()
+    if request.user.is_superuser:
+        return redirect('/login/')
+    administrator = Administrator.objects.get(user=request.user)
+
+    employees = Employee.objects.filter(filial = administrator.filial)
     search_query = request.GET.get('q')
     if search_query:
         employees = employees.filter(Q(name__icontains=search_query))
@@ -106,13 +55,19 @@ def employees(request):
     return HttpResponse(html_template.render(context, request))
 
 
+@login_required(login_url="/login/")
 def employee_create(request):
+    if request.user.is_superuser:
+        return redirect('/login/')
+    administrator = Administrator.objects.get(user=request.user)
+
     if request.method == 'POST':
         form = EmployeeForm(request.POST, request.FILES)
         if form.is_valid():
             employee = form.save()
             # return redirect('employees')
-            print(employee.id)
+            employee.filial = administrator.filial
+            employee.save()          
             return redirect(reverse('create_schedule_for_employee', args=[employee.id]))    
     else:
         form = EmployeeForm()
@@ -124,8 +79,13 @@ def employee_create(request):
 
 @login_required(login_url="/login/")
 def employee_detail(request, pk):
+    if request.user.is_superuser:
+        return redirect('/login/')
+    administrator = Administrator.objects.get(user=request.user)
     employee = Employee.objects.get(id=pk)
-
+    if employee.filial != administrator.filial:
+        return redirect('dashboard')
+    
     if request.method == 'POST':
         form = EmployeeForm(request.POST, request.FILES, instance=employee)
         if form.is_valid():
