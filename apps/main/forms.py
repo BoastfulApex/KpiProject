@@ -46,7 +46,23 @@ class EmployeeForm(forms.ModelForm):
         model = Employee
         fields = ['name', 'user_id']
 
+class WorkScheduleForm(forms.ModelForm):
+    weekday = forms.ModelMultipleChoiceField(
+        queryset=Weekday.objects.all(),
+        widget=forms.CheckboxSelectMultiple(attrs={"class": "form-check-input"}),
+    )
+    start = forms.TimeField(
+        widget=forms.TimeInput(attrs={"class": "form-control", "type": "time", "style": "width: 150px;"})
+    )
+    end = forms.TimeField(
+        widget=forms.TimeInput(attrs={"class": "form-control", "type": "time", "style": "width: 150px;"})
+    )
 
+    class Meta:
+        model = WorkSchedule
+        fields = ['weekday', 'start', 'end']
+                
+        
 # class CategoryForm(forms.ModelForm):
 #     groupname = forms.CharField(
 #         widget=forms.TextInput(

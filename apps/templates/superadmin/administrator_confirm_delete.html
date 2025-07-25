@@ -18,7 +18,7 @@
         <div class="container-fluid">
             <form method="POST">
                 {% csrf_token %}
-                <p> O'chirishni tasdiqlaysizmi<br><b>{{administrator.name}}</b></p>
+                <p> O'chirishni tasdiqlaysizmi<br><b>{{administrator.full_name}}</b></p>
                 <input type="submit" value="O'chirish" class="btn btn-outline-danger">
             </form>
         </div>

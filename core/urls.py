@@ -23,6 +23,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path("", include("apps.authentication.urls")),
     path("", include("apps.home.urls")),
+    path("superadmin/", include("apps.superadmin.urls")),
 
     path("web_page_api/", include("apps.main.urls"))
 ]

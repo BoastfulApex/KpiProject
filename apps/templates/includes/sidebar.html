@@ -11,6 +11,7 @@
                 </a>
             </li>
 
+            {% if request.user.is_superuser == False and request.user.is_staff == True %}
             <li class="sidebar-item {% if 'admins' in segment %} active {% endif %}">
                 <a class="sidebar-link " href="{% url 'admins' %}">
                     <i class="align-middle" data-feather="user"></i> <span class="align-middle">Asministratorlar</span>
@@ -19,9 +20,25 @@
             
             <li class="sidebar-item {% if 'employees' in segment %} active {% endif %}">
                 <a class="sidebar-link " href="{% url 'employees' %}">
-                    <i class="align-middle" data-feather="user"></i> <span class="align-middle">Xodimlar</span>
+                    <i class="align-middle" data-feather="users"></i> <span class="align-middle">Xodimlar</span>
                 </a>
             </li>
+            {% endif %}
+
+
+            {% if request.user.is_superuser == True %}
+            <li class="sidebar-item {% if 'filials' in segment %} active {% endif %}">
+                <a class="sidebar-link" href="{% url 'admin_filials' %}">
+                    <i class="align-middle" data-feather="map-pin"></i> <span class="align-middle">Filials</span>
+                </a>
+            </li>
+            <li class="sidebar-item {% if 'admins' in segment %} active {% endif %}">
+                <a class="sidebar-link" href="{% url 'admin_adminstrators' %}">
+                    <i class="align-middle" data-feather="user"></i> <span class="align-middle">Administratorlar</span>
+                </a>
+            </li>
+            {% endif %}
+
             {% comment %}<li class="sidebar-item {% if 'cats' in segment %} active {% endif %}">
                 <a class="sidebar-link " href="{% url 'home_categories' %}">
                     <i class="align-middle" data-feather="grid"></i> <span class="align-middle">Kategoriyalar</span>

@@ -1,5 +1,6 @@
 from django import forms
-
+from .models import *
+from apps.superadmin.models import *
 
 class LoginForm(forms.Form):
     username = forms.CharField(

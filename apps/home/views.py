@@ -9,20 +9,33 @@ from apps.authentication.models import *
 from apps.main.forms import *
 from django.views.generic.edit import CreateView, DeleteView, UpdateView
 from django.urls import reverse_lazy
+from django.urls import reverse
+from django.shortcuts import get_object_or_404
 
 
-@login_required(login_url="/login/")
 def index(request):
+    if not request.user.is_authenticated:
+        return redirect('/login/')
+
     cashback = []
+
+    if request.user.is_superuser:
+        template = 'home/superuser/super_dashboard.html'
+    elif request.user.is_staff:
+        template = 'home/user/staff_dashboard.html'
+    else:
+        return redirect('/login/')
+
     context = {
         'segment': 'dashboard',
         'cashbacks': cashback
     }
-
-    html_template = loader.get_template('home/index.html')
+    
+    html_template = loader.get_template(template)
     return HttpResponse(html_template.render(context, request))
 
 
+@login_required(login_url="/login/")
 def admins(request):
     admins = Administrator.objects.all()
     search_query = request.GET.get('q')
@@ -39,6 +52,7 @@ def admins(request):
     return HttpResponse(html_template.render(context, request))
 
 
+@login_required(login_url="/login/")
 def admin_create(request):
     if request.method == 'POST':
         form = AdminsForm(request.POST, request.FILES)
@@ -96,8 +110,10 @@ def employee_create(request):
     if request.method == 'POST':
         form = EmployeeForm(request.POST, request.FILES)
         if form.is_valid():
-            form.save()
-            return redirect('employees')
+            employee = form.save()
+            # return redirect('employees')
+            print(employee.id)
+            return redirect(reverse('create_schedule_for_employee', args=[employee.id]))    
     else:
         form = EmployeeForm()
 
@@ -128,6 +144,24 @@ class EmployeeDelete(DeleteView):
     fields = '__all__'
     success_url = reverse_lazy('employees')
 
+def create_schedule_for_employee(request, employee_id):
+    employee = get_object_or_404(Employee, id=employee_id)
+
+    if request.method == 'POST':
+        form = WorkScheduleForm(request.POST)
+        if form.is_valid():
+            schedule = form.save(commit=False)
+            schedule.employee = employee
+            schedule.save()
+            form.save_m2m()  # ManyToMany uchun
+            return redirect('employees')  # yoki boshqa sahifaga
+    else:
+        form = WorkScheduleForm()
+
+    return render(request, 'home/workschedule/create_schedule_for_employee.html', 
+                  {'form': form, 'employee': employee})
+    
+    
 # @login_required(login_url="/login/")
 # def users_view(request):
 #     my_queryset = MegaUser.objects.filter(is_superuser=False).all().order_by('id')

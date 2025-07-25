@@ -1,21 +1,13 @@
 {% extends "layouts/base.html" %}
 {% load static %}
-{% block title %} Bot Administratorlari {% endblock %}
+{% block title %} Administratorlar {% endblock %}
 
 <!-- Element injected in the BODY element -->
-{% block body_class %} dashboard {% endblock body_class %} 
-<style>
-	.x {
-    color: red;
-	}
-	.check {
-		color: green;
-	}
+{% block body_class %} Tahrirlash {% endblock body_class %}
 
-</style>
 <!-- Specific Page CSS goes HERE  -->
 {% block stylesheets %}
-  <link href="{% static 'css/app.css' %}" rel="stylesheet">
+<link href="{% static 'css/app.css' %}" rel="stylesheet" xmlns="http://www.w3.org/1999/html">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
   
 {% endblock stylesheets %}
@@ -24,84 +16,48 @@
 
 			<main class="content">
 				<div class="container-fluid p-0">
+					<div class="card-body">
+                        <form role="form" method="post" action="">
+                            {% csrf_token %}
 
-					<form class="input-group mb-4" method="get">
-						<input class="form-control" type="text" name="q" value="{{ search_query }}">
-						<button class="input-group-text btn btn-primary" type="submit">Izlash</button>
-					</form>
+                            <div class="form-group">
+                                <label for="id_username">Username</label>
+                                {{ form.username }}
+                            </div>
+                            <br>
 
-					<div class="row">
-						<div class="col-12 col-lg-12 col-xxl-12 d-flex">
-							<div class="card flex-fill">
-								<div class="card-header">
+                            <div class="form-group">
+                                <label for="id_password">Parol</label>
+                                {{ form.password }}
+                            </div>
+                            <br>
 
-									<h5 class="card-title mb-0">Administrator ro'yxati</h5>
-									<h5 class="card-title mb-0">{{ search_query}}</h5>
-								</div>
-								<table class="table table-hover my-0">
-									<thead>
-										<tr>
-											<th>Ismi</th>
-											<th class="d-none d-xl-table-cell">telegramID</th>
-											<th></th>
-											<th></th>
-										</tr>
-									</thead>
-									<tbody>
-									{% for admin in page_obj %}
-										<tr>
-											<td class="d-none d-xl-table-cell">{{ admin.name }}</td>
-											<td class="d-none d-xl-table-cell">{{ admin.user_id }}</td>
-											<td class="d-none d-md-table-cell">
+                            <div class="form-group">
+                                <label for="id_telegram_id">Telegram ID (user_id)</label>
+                                {{ form.telegram_id }}
+                            </div>
+                            <br>
 
-												<div class="col-auto">
-													<div class="stat text-primary">
-														<a href="{% url 'admin_update' admin.id %}">
-															<i class="align-middle" data-feather="edit-3"></i>
-														</a>
-													</div>
-												</div>
-											</td>
-											<td class="d-none d-md-table-cell">
-												<div class="col-auto">
-													<div class="stat text-primary">
-														<div class="stat text-primary">
-															<a href="{% url 'admin_delete' admin.id %}"><i
-																	class="align-middle"
-																	data-feather="delete"></i></a>
-														</div>
-													</div>
-												</div>
+                            <div class="form-group">
+                                <label for="id_name">To‘liq ism</label>
+                                {{ form.full_name }}
+                            </div>
+                            <br>
 
-											</td>
-										</tr>
-									{% endfor %}
-									<a class="btn btn-outline-success text-right" href="{% url 'administrators_create' %}">
-										<i class="fas fa-plus"></i>Qo'shish
-									</a>
-									</tbody>
-								</table>
-							</div>
-						</div>
+                            <div class="form-group">
+                                <label for="id_location">Filial</label>
+                                {{ form.filial }}
+                            </div>
+                            <br>
+
+                            <div class="row">
+                                <div class="col-12">
+                                    <input type="submit" class="btn btn-success float-right" value="Qo‘shish">
+                                </div>
+                            </div>
+                        </form>
 					</div>
-					<div class="pagination">
-						<span class="step-links">
-							{% if page_obj.has_previous %}
-								<a href="?q={{ search_query }}&page=1">&laquo; Boshiga</a>
-								<a href="?q={{ search_query }}&page={{ page_obj.previous_page_number }}">&lsaquo; ortga</a>
-							{% endif %}
-
-							<span class="current-page">
-								{{ page_obj.number }} | {{ page_obj.paginator.num_pages }}
-							</span>
-
-							{% if page_obj.has_next %}
-								<a href="?q={{ search_query }}&page={{ page_obj.next_page_number }}">keyingi &rsaquo;</a>
-								<a href="?q={{ search_query }}&page={{ page_obj.paginator.num_pages }}">Oxirgi &raquo;</a>
-							{% endif %}
-						</span>
-					</div>
-                </div>
+				</div>
             </main>
 {% endblock content %}
 

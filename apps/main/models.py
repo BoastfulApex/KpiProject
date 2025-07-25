@@ -1,6 +1,6 @@
 from django.db import models
 from django.utils import timezone
-
+from apps.superadmin.models import *
 
 
 class TelegramUser(models.Model):
@@ -16,26 +16,10 @@ class TelegramUser(models.Model):
     class Meta:
         verbose_name = "Telegram User"
         verbose_name_plural = "Telegram Users"
-
-
-class Employee(models.Model):
-    name = models.CharField(max_length=200, blank=True, null=True)
-    user_id = models.IntegerField(null=True, blank=True, unique=True)
-    checked_by = models.ForeignKey('Administrator', on_delete=models.SET_NULL, null=True, blank=True, related_name='employees')
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        verbose_name = "Xodim"
-        verbose_name_plural = "Xodimlar"
-
-    def __str__(self):
-        return self.name if self.name else "Unnamed Employee"
-
-    def __str__(self):
-        return self.name
     
-    
+
 class Location(models.Model):
+    filial = models.ForeignKey(Filial, on_delete=models.CASCADE, null=True, blank=True)
     name = models.CharField(max_length=200, null=True, blank=True)
     address = models.CharField(max_length=200, null=True, blank=True)
     latitude = models.FloatField(null=True, blank=True)
@@ -47,7 +31,24 @@ class Location(models.Model):
     class Meta:
         verbose_name = "Manzil"
         verbose_name_plural = "Manzillar"
+        
+
+class Employee(models.Model):
+    name = models.CharField(max_length=200, blank=True, null=True)
+    user_id = models.IntegerField(null=True, blank=True, unique=True)
+    filial = models.ForeignKey(Filial, on_delete=models.CASCADE, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
     
+    class Meta:
+        verbose_name = "Xodim"
+        verbose_name_plural = "Xodimlar"
+
+    def __str__(self):
+        return self.name if self.name else "Unnamed Employee"
+
+    def __str__(self):
+        return self.name
+        
 
 class Attendance(models.Model):
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='attendances')
@@ -65,30 +66,6 @@ class Attendance(models.Model):
         verbose_name = "Kirish Chiqishlar"
         verbose_name_plural = "Kirish Chiqishlar"
     
-    
-class Administrator(models.Model):
-    name = models.CharField(max_length=200, blank=True, null=True)
-    user_id = models.IntegerField(null=True, blank=True)
-
-    def __str__(self):
-        return self.name if self.name else "Unnamed Administrator"
-    
-    class Meta:
-        verbose_name = "Administrator"
-        verbose_name_plural = "Administratorlar"
-
-
-class Weekday(models.Model):
-    name = models.CharField(max_length=20, unique=True)
-    name_en = models.CharField(max_length=20, unique=True, null=True, blank=True)
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        verbose_name = "Hafta kuni"
-        verbose_name_plural = "Hafta kunlari"
-
 
 class WorkSchedule(models.Model):
     weekday = models.ManyToManyField(Weekday, related_name='work_schedules')

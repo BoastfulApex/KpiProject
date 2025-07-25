@@ -4,14 +4,16 @@ from apps.home import views
 urlpatterns = [
 
     path('', views.index, name='home'),
-    path('administrators/', views.admins, name='admins'),
-    path('administrators_create/', views.admin_create, name='administrators_create'),
-    path('administrators/<int:pk>', views.admin_detail, name='admin_update'),
-    path('admin_delete/<int:pk>', views.AdminDelete.as_view(), name='admin_delete'),
+    # path('administrators/', views.admins, name='admins'),
+    # path('administrators_create/', views.admin_create, name='administrators_create'),
+    # path('administrators/<int:pk>', views.admin_detail, name='admin_update'),
+    # path('admin_delete/<int:pk>', views.AdminDelete.as_view(), name='admin_delete'),
     path('employees/', views.employees, name='employees'),
     path('employees_create/', views.employee_create, name='employees_create'),
     path('employees/<int:pk>', views.employee_detail, name='employee_update'),
     path('employee_delete/<int:pk>', views.EmployeeDelete.as_view(), name='employee_delete'),
+    path('employees/<int:employee_id>/create-schedule/', views.create_schedule_for_employee, name='create_schedule_for_employee'),
+
     
     # path('users/', views.users_view, name='users'),
     # path('categories/', views.categories, name='home_categories'),

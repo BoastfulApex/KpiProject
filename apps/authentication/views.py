@@ -5,8 +5,6 @@ from .forms import LoginForm
 from django.contrib.auth import login
 
 
-
-
 def login_view(request):
     form = LoginForm(request.POST or None)
 
