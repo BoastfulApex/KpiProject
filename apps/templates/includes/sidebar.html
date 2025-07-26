@@ -12,15 +12,15 @@
             </li>
 
             {% if request.user.is_superuser == False and request.user.is_staff == True %}
-            <li class="sidebar-item {% if 'admins' in segment %} active {% endif %}">
-                <a class="sidebar-link " href="{% url 'admins' %}">
-                    <i class="align-middle" data-feather="user"></i> <span class="align-middle">Asministratorlar</span>
-                </a>
-            </li>
             
             <li class="sidebar-item {% if 'employees' in segment %} active {% endif %}">
                 <a class="sidebar-link " href="{% url 'employees' %}">
                     <i class="align-middle" data-feather="users"></i> <span class="align-middle">Xodimlar</span>
+                </a>
+            </li>
+            <li class="sidebar-item {% if 'schedules' in segment %} active {% endif %}">
+                <a class="sidebar-link " href="{% url 'schedules' %}">
+                    <i class="align-middle" data-feather="list"></i> <span class="align-middle">Ish jadvallari</span>
                 </a>
             </li>
             {% endif %}

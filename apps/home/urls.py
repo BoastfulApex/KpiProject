@@ -13,6 +13,9 @@ urlpatterns = [
     path('employees/<int:pk>', views.employee_detail, name='employee_update'),
     path('employee_delete/<int:pk>', views.EmployeeDelete.as_view(), name='employee_delete'),
     path('employees/<int:employee_id>/create-schedule/', views.create_schedule_for_employee, name='create_schedule_for_employee'),
+    path('schedules/', views.schedules, name='schedules'),
+    path('schedule_delete/<int:pk>', views.WorkScheduleDelete.as_view(), name='schedule_delete'),
+    path('schedule_create/', views.create_schedule, name='schedule_create'),
 
     
     # path('users/', views.users_view, name='users'),

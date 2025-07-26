@@ -46,6 +46,7 @@ class EmployeeForm(forms.ModelForm):
         model = Employee
         fields = ['name', 'user_id']
 
+
 class WorkScheduleForm(forms.ModelForm):
     weekday = forms.ModelMultipleChoiceField(
         queryset=Weekday.objects.all(),
@@ -61,8 +62,49 @@ class WorkScheduleForm(forms.ModelForm):
     class Meta:
         model = WorkSchedule
         fields = ['weekday', 'start', 'end']
-                
+
+
+class WorkScheduleWithUserForm(forms.ModelForm):
+    
+    weekday = forms.ModelMultipleChoiceField(
+        queryset=Weekday.objects.all(),
+        widget=forms.CheckboxSelectMultiple(attrs={"class": "form-check-input"}),
+    )
+    
+    start = forms.TimeField(
+        widget=forms.TimeInput(attrs={"class": "form-control", "type": "time", "style": "width: 150px;"})
+    )
+    end = forms.TimeField(
+        widget=forms.TimeInput(attrs={"class": "form-control", "type": "time", "style": "width: 150px;"})
+    )
+
+    employee = forms.ModelChoiceField(
+        queryset=Employee.objects.all(),
+        label="Employee",
+        widget=forms.Select(attrs={
+            "class": "form-control"
+        })
+    )
+
+    class Meta:
+        model = WorkSchedule
+        fields = ['weekday', 'start', 'end', 'employee']
+
+    def __init__(self, *args, **kwargs):
+        admin = kwargs.pop('admin', None)  # tashqaridan admin yuboriladi
+        super().__init__(*args, **kwargs)
+        print(admin.filial.filial_name)
+        # employee querysetni admin.filial ga qarab filtrlaymiz
+        if admin and admin.filial:
+            self.fields['employee'].queryset = Employee.objects.filter(filial=admin.filial)
+            print(len(self.fields['employee'].queryset))
+        else:
+            self.fields['employee'].queryset = Employee.objects.none()  # hech narsa ko‘rsatmaydi
+
+        self.fields['employee'].widget.attrs.update({'class': 'form-control'})
         
+           
+            
 # class CategoryForm(forms.ModelForm):
 #     groupname = forms.CharField(
 #         widget=forms.TextInput(

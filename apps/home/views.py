@@ -25,10 +25,12 @@ def index(request):
         template = 'home/user/staff_dashboard.html'
     else:
         return redirect('/login/')
-
+    admin = Administrator.objects.get(user=request.user)
     context = {
         'segment': 'dashboard',
-        'cashbacks': cashback
+        'cashbacks': cashback,
+        "filial": admin.filial.filial_name
+
     }
     
     html_template = loader.get_template(template)
@@ -49,9 +51,10 @@ def employees(request):
     page_obj = paginator.get_page(page_number)
     context = {
         'page_obj': page_obj,
-        "segment": "employees"
+        "segment": "employees",
+        "filial": administrator.filial.filial_name
     }
-    html_template = loader.get_template('home/employees/employees.html')
+    html_template = loader.get_template('home/user/employees/employees.html')
     return HttpResponse(html_template.render(context, request))
 
 
@@ -73,8 +76,10 @@ def employee_create(request):
         form = EmployeeForm()
 
     return render(request,
-                  'home/employees/employee_create.html',
-                  {'form': form})
+                  'home/user/employees/employee_create.html',
+                  {'form': form,
+                   "filial": administrator.filial.filial_name,
+                   "segment": "employees"})
 
 
 @login_required(login_url="/login/")
@@ -95,7 +100,7 @@ def employee_detail(request, pk):
         form = EmployeeForm(instance=employee)
 
     return render(request,
-                  'home/employees/employee_detail.html',
+                  'home/user/employees/employee_detail.html',
                   {'form': form, 'segment': 'employees', 'employee': employee})
 
 
@@ -103,6 +108,30 @@ class EmployeeDelete(DeleteView):
     model = Employee
     fields = '__all__'
     success_url = reverse_lazy('employees')
+
+
+@login_required(login_url="/login/")
+def schedules(request):
+    if request.user.is_superuser:
+        return redirect('/login/')
+    
+    administrator = Administrator.objects.get(user=request.user)
+
+    all_schedules = WorkSchedule.objects.filter(employee__filial__id= administrator.filial.id)
+    search_query = request.GET.get('q')
+    if search_query:
+        all_schedules = all_schedules.filter(Q(name__icontains=search_query))
+    paginator = Paginator(all_schedules, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    context = {
+        'page_obj': page_obj,
+        "segment": "schedules",
+        "filial": administrator.filial.filial_name
+    }
+    html_template = loader.get_template('home/user/workschedule/schedules.html')
+    return HttpResponse(html_template.render(context, request))
+
 
 def create_schedule_for_employee(request, employee_id):
     employee = get_object_or_404(Employee, id=employee_id)
@@ -118,9 +147,33 @@ def create_schedule_for_employee(request, employee_id):
     else:
         form = WorkScheduleForm()
 
-    return render(request, 'home/workschedule/create_schedule_for_employee.html', 
+    return render(request, 'home/user/workschedule/create_schedule_for_employee.html', 
                   {'form': form, 'employee': employee})
+
     
+@login_required(login_url="/login/")
+def create_schedule(request):
+    if request.user.is_superuser:
+        return redirect('/login/')
+    administrator = Administrator.objects.get(user=request.user)
+
+    if request.method == 'POST':
+        form = WorkScheduleWithUserForm(request.POST, admin=administrator)
+        if form.is_valid():
+            form.save()
+            return redirect('schedules')
+    else:
+        form = WorkScheduleWithUserForm(admin=administrator)
+    return render(request, 'home/user/workschedule/schedule_create.html', 
+                  {'form': form, 
+                   "filial": administrator.filial.filial_name,
+                   "segment": "schedules"})
+
+
+class WorkScheduleDelete(DeleteView):
+    model = WorkSchedule
+    fields = '__all__'
+    success_url = reverse_lazy('schedules')
     
 # @login_required(login_url="/login/")
 # def users_view(request):
