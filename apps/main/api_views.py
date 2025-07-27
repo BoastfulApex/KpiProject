@@ -1,9 +1,32 @@
 from rest_framework.response import Response
 from rest_framework import serializers, generics, status
 from rest_framework.renderers import JSONRenderer
-from .models import Location, Attendance, Employee
+from .models import Location, Attendance, Employee, WorkSchedule
 from django.utils import timezone
+from apps.superadmin.models import Administrator
+from django.utils import timezone
+from datetime import datetime, timedelta
+from data import config
+import requests
 
+
+BOT_TOKEN = config.BOT_TOKEN
+
+
+def send_telegram_message_to_admin(chat_id, text):
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": chat_id,
+        "text": text
+    }
+    requests.post(url, data=payload)
+
+def get_time_difference(sch_time, now_time):
+    """Haqiqiy vaqtdan jadval vaqti farqini hisoblaydi"""
+    sch_dt = datetime.combine(timezone.localdate(), sch_time)
+    now_dt = datetime.combine(timezone.localdate(), now_time)
+    delta = (now_dt - sch_dt).total_seconds()
+    return int(delta)
 
 def get_distance_meters(lat1, lon1, lat2, lon2):
     from geopy.distance import geodesic
@@ -78,6 +101,35 @@ class SimpleCheckAPIView(generics.ListCreateAPIView):
             attendance.check_out = now_time
 
         attendance.save()
+        
+        admin = Administrator.objects.filter(filial=employee.filial).first()
+        if admin and admin.telegram_id:
+            msg_lines = [
+                f"🧑‍💼 Xodim: {employee.full_name}",
+                f"📅 Sana: {today.strftime('%Y-%m-%d')}",
+                f"🕒 Turi: {'Keldi' if check_type == 'check_in' else 'Ketdi'}",
+                f"📍 Masofa: {round(distance, 1)} metr",
+            ]
+
+            # 👀 Jadvalga nisbatan kech/erta kelganini hisoblash
+            jadval = WorkSchedule.objects.filter(employee=employee, weekday=today.weekday()).first()
+            if jadval:
+                expected_time = jadval.check_in if check_type == 'check_in' else jadval.check_out
+                delta_sec = get_time_difference(expected_time, now_time)
+                min_diff = abs(delta_sec) // 60
+
+                if delta_sec > 0:
+                    msg_lines.append(f"⌛ Kechikdi: {min_diff} daqiqa")
+                elif delta_sec < 0:
+                    msg_lines.append(f"⏱️ Erta keldi: {min_diff} daqiqa")
+                else:
+                    msg_lines.append("✅ O‘z vaqtida")
+    
+            msg_lines.append("✅ Holat: Qabul qilindi")
+    
+            message_text = "\n".join(msg_lines)
+            
+            send_telegram_message_to_admin(admin.telegram_id, message_text)
 
         return Response({
             "status": "SUCCESS",
