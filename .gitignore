@@ -10,4 +10,4 @@ pyvenv.cfg
 ./venv
 ./static
 .env
-.db.sqlite3
+db.sqlite3
