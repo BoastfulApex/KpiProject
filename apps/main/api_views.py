@@ -58,8 +58,13 @@ class SimpleCheckAPIView(generics.ListCreateAPIView):
         latitude = data['latitude']
         longitude = data['longitude']
 
+        try:
+            employee = Employee.objects.get(user_id=user_id)
+        except Employee.DoesNotExist:
+            return Response({"status": "FAIL", "reason": "User not found"}, status=404)
+
         # 🔍 1. Location tekshirish
-        location = Location.objects.first()
+        location = Location.objects.filter(filial=employee.filial).first()
         if not location:
             return Response({"status": "FAIL", "reason": "Location not set"}, status=400)
 
@@ -77,25 +82,16 @@ class SimpleCheckAPIView(generics.ListCreateAPIView):
             return Response({"status": "FAIL", "reason": "You are too far from the location."}, status=403)
 
         # ✅ 3. Userni olish
-        try:
-            employee = Employee.objects.get(user_id=user_id)
-        except Employee.DoesNotExist:
-            return Response({"status": "FAIL", "reason": "User not found"}, status=404)
 
         today = timezone.localdate()
         now_time = timezone.localtime().time()
-
         # 🕒 4. Attendance ni yaratish yoki olish
         attendance, created = Attendance.objects.get_or_create(
             employee=employee,
             date=today
         )
 
-        if check_type == 'check_in':
-            if attendance.check_in:
-                return Response({"status": "ALREADY_CHECKED_IN", "time": attendance.check_in.strftime('%H:%M:%S')})
-            attendance.check_in = now_time
-        elif check_type == 'check_out':
+        if check_type == 'check_out':
             if attendance.check_out:
                 return Response({"status": "ALREADY_CHECKED_OUT", "time": attendance.check_out.strftime('%H:%M:%S')})
             attendance.check_out = now_time
@@ -105,7 +101,7 @@ class SimpleCheckAPIView(generics.ListCreateAPIView):
         admin = Administrator.objects.filter(filial=employee.filial).first()
         if admin and admin.telegram_id:
             msg_lines = [
-                f"🧑‍💼 Xodim: {employee.full_name}",
+                f"🧑‍💼 Xodim: {employee.name}",
                 f"📅 Sana: {today.strftime('%Y-%m-%d')}",
                 f"🕒 Turi: {'Keldi' if check_type == 'check_in' else 'Ketdi'}",
                 f"📍 Masofa: {round(distance, 1)} metr",
@@ -114,7 +110,7 @@ class SimpleCheckAPIView(generics.ListCreateAPIView):
             # 👀 Jadvalga nisbatan kech/erta kelganini hisoblash
             jadval = WorkSchedule.objects.filter(employee=employee, weekday=today.weekday()).first()
             if jadval:
-                expected_time = jadval.check_in if check_type == 'check_in' else jadval.check_out
+                expected_time = jadval.start if check_type == 'check_in' else jadval.end
                 delta_sec = get_time_difference(expected_time, now_time)
                 min_diff = abs(delta_sec) // 60
 
