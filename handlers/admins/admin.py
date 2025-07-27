@@ -126,10 +126,9 @@ async def process_full_name(message: Message, state: FSMContext):
     data = await state.get_data()
     user_id = data['user_id']
     full_name = message.text
-
-    # Bazaga saqlash funksiyasi
-    await add_employee(user_id=user_id, full_name=full_name)
-
+    print(message.from_user.id)
+    print("AAAAAA")
+    await add_employee(admin_id= message.from_user.id, user_id=user_id, full_name=full_name)
     await state.clear()
     markup = await admin_menu_keyboard()
     await message.answer("✅ Xodim qo‘shildi!\n\nKerakli buyruqni tanlang:", reply_markup=markup)
@@ -187,7 +186,7 @@ async def approve_user_callback(callback_query: CallbackQuery, state: FSMContext
     
     user = await callback_query.bot.get_chat(user_id)
 
-    await add_employee(user_id=user_id, full_name=f"{user.first_name} {user.last_name or ''}".strip())
+    await add_employee(user_id=user_id, full_name=f"{user.first_name} {user.last_name or ''}".strip(), admin_id=callback_query.from_user.id)
 
     # 3. Adminga xabarni yangilash
     await callback_query.message.edit_text("🟢 Foydalanuvchi tasdiqlandi va bazaga qo‘shildi.")        

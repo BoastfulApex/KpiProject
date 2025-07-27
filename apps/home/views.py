@@ -18,18 +18,21 @@ def index(request):
         return redirect('/login/')
 
     cashback = []
-
+    filial = ''
+    admin = None
+    
     if request.user.is_superuser:
         template = 'home/superuser/super_dashboard.html'
-    elif request.user.is_staff:
+    elif not request.user.is_superuser:
         template = 'home/user/staff_dashboard.html'
+        admin = Administrator.objects.get(user=request.user)
+        filial = admin.filial.filial_name
     else:
         return redirect('/login/')
-    admin = Administrator.objects.get(user=request.user)
     context = {
         'segment': 'dashboard',
         'cashbacks': cashback,
-        "filial": admin.filial.filial_name
+        "filial": filial
 
     }
     

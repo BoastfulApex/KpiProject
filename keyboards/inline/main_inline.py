@@ -5,6 +5,7 @@ from data.config import URL
 
 
 async def go_web_app():
+    print(URL)
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(

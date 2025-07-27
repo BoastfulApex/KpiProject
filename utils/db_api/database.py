@@ -15,13 +15,17 @@ def get_employee(user_id):
 
 
 @sync_to_async
-def add_employee(user_id, full_name):
-    try:
-        emp = Employee.objects.create(user_id=user_id, name=full_name).save()
-        return emp
-    except Exception as exx:
-        print(exx)
-        return None
+def add_employee(user_id, full_name, admin_id):
+    # try:
+    Employee.objects.create(user_id=user_id, name=full_name).save()
+    admin = Administrator.objects.filter(telegram_id=admin_id).first()
+    emp = Employee.objects.filter(user_id=user_id).first()
+    emp.filial = admin.filial
+    emp.save()
+    return emp
+    # except Exception as exx:
+    #     print(exx)
+    #     return None
 
 @sync_to_async
 def get_telegram_user(user_id: int) -> TelegramUser:
@@ -92,14 +96,32 @@ def get_all_addresses()-> list[str]:
 @sync_to_async
 def get_filial_location(user_id):
     admin = Administrator.objects.filter(telegram_id=user_id).first()
-    return Location.objects.filter(filaal = admin.filial).last()
+    return Location.objects.filter(filial = admin.filial).last()
 
 
 @sync_to_async
 def save_location(name, lat, lon, user_id):
-    admin = Administrator.objects.get(telegram_id=user_id)
-    Location.objects.all().delete()  # eski barcha locationlarni o‘chirish
-    Location.objects.create(name=name, latitude=lat, longitude=lon)
+    try:
+        admin = Administrator.objects.get(telegram_id=user_id)
+        location = Location.objects.filter(filial=admin.filial).first()
+        if location:
+            # Mavjud locationni yangilaymiz
+            location.name = name
+            location.latitude = lat
+            location.longitude = lon
+            location.save()
+        else:
+            # Yangi location yaratamiz
+            Location.objects.create(
+                filial=admin.filial,
+                name=name,
+                latitude=lat,
+                longitude=lon
+            )    
+    except Exception as exx:
+        print(exx)
+        return None
+    
     
         
 from geopy.geocoders import Nominatim

@@ -25,7 +25,7 @@ urlpatterns = [
     path("", include("apps.home.urls")),
     path("superadmin/", include("apps.superadmin.urls")),
 
-    path("web_page_api/", include("apps.main.urls"))
+    path("web_app/", include("apps.main.urls"))
 ]
 
 
