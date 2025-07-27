@@ -40,3 +40,14 @@ def get_user_approval_keyboard(user_id: int) -> InlineKeyboardMarkup:
             InlineKeyboardButton(text="❌ Rad etish", callback_data=f"reject_user:{user_id}")
         ]
     ])
+    
+async def get_filial_selection_keyboard() -> InlineKeyboardMarkup:
+    filiallar = await get_all_filials()
+
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=filial.filial_name, callback_data=f"filial_{filial.id}")]
+            for filial in filiallar
+        ]
+    )
+    return keyboard

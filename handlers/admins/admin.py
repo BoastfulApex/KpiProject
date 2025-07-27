@@ -105,7 +105,7 @@ async def process_date_range(message: Message, state: FSMContext):
 
     # ✅ To‘g‘ri bo‘lsa, holatni yangilang yoki keyingi bosqichga o‘ting
     
-    file_path = await generate_attendance_excel_file(start_date, end_date)
+    file_path = await generate_attendance_excel_file(start_date, end_date, user_id=message.from_user.id)
     file = FSInputFile(file_path, filename="hisobot.xlsx")
     await message.answer_document(file, caption="📊 Hisobot tayyor!")
     await message.answer(f"✅ Sana oralig‘i qabul qilindi:\n📅 {start_date.date()} — {end_date.date()}")
@@ -137,7 +137,7 @@ async def process_full_name(message: Message, state: FSMContext):
 
 @router.message(StateFilter(None), F.text == "📍 Manzillar")
 async def show_latest_location(message: Message):
-    location = await get_latest_location()
+    location = await get_filial_location(message.from_user.id)
     
     if location:
         markup = address_bottom_keyboard()
@@ -172,7 +172,7 @@ async def save_user_location(message: Message, state: FSMContext):
 
     name = await get_location_name(lat, lon)
 
-    await save_location(name=name, lat=lat, lon=lon)
+    await save_location(name=name, lat=lat, lon=lon, user_id=message.from_user.id)
 
     await message.answer(f"✅ Manzil qo‘shildi:\n📍 {name}")
     markup = await admin_menu_keyboard()

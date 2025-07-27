@@ -50,7 +50,6 @@ async def handler(message: Message, command: CommandStart):
             "Botdan foydalanish uchun xodim bo‘lishingiz kerak.\n"
         )
 
-        # 2. Inline tugma bilan administratorga murojaat qilishni taklif qilamiz
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="📨 Administratorga xabar yuborish", callback_data="notify_admin")]
         ])
@@ -59,23 +58,40 @@ async def handler(message: Message, command: CommandStart):
 
 @router.callback_query(lambda c: c.data == "notify_admin")
 async def notify_admin_callback(callback_query: CallbackQuery):
-    user = callback_query.from_user
-    admins = await get_all_admin_ids()
+    keyboard = await get_filial_selection_keyboard()
 
-    for admin_id in admins:
+    await callback_query.message.edit_text(
+        "📍 Qaysi filialga murojaat yubormoqchisiz?",
+        reply_markup=keyboard
+    )
+    await callback_query.answer()
+
+
+@router.callback_query(lambda c: c.data.startswith("filial_"))
+async def send_to_filial_admin(callback_query: CallbackQuery):
+    filial_id = int(callback_query.data.split("_")[1])
+    user = callback_query.from_user
+
+    admins = await get_admins_by_filial(filial_id)
+
+    if not admins:
+        await callback_query.message.edit_text("❌ Afsuski, bu filialda administrator topilmadi.")
+        return
+
+    for admin in admins:
         keyboard = get_user_approval_keyboard(user.id)
 
         await callback_query.bot.send_message(
-            chat_id=admin_id,
+            chat_id=admin.telegram_id,
             text=(
                 f"🚨 Yangi foydalanuvchi botga kirishga harakat qildi:\n\n"
                 f"👤 Ismi: {user.full_name}\n"
                 f"🆔 Telegram ID: {user.id}\n"
+                f"🏢 Filial: {admin.filial.filial_name}\n"
                 f"📩 U administratorga murojaat yuborishni tanladi."
             ),
             reply_markup=keyboard
         )
 
-    await callback_query.message.answer("✅ Administratorga xabaringiz yuborildi.")
+    await callback_query.message.edit_text("✅ Tanlangan filial administratoriga xabaringiz yuborildi.")
     await callback_query.answer()
-    await callback_query.message.delete()

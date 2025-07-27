@@ -2,6 +2,7 @@ from datetime import date, datetime
 from typing import List, Any
 from asgiref.sync import sync_to_async
 from apps.main.models import *
+from apps.superadmin.models import *
 
 
 @sync_to_async
@@ -44,6 +45,9 @@ def add_telegram_user(user_id, username, first_name, last_name):
         return None
 
 
+@sync_to_async
+def get_all_filials():
+    return list(Filial.objects.all())
     
     
 @sync_to_async
@@ -65,12 +69,17 @@ def is_user_employee(user_id: int) -> bool:
 
 @sync_to_async
 def is_user_admin(user_id: int) -> bool:
-    return Administator.objects.filter(user_id=user_id).exists()
+    return Administrator.objects.filter(telegram_id=user_id).exists()
+
+
+@sync_to_async
+def get_admins_by_filial(filial_id: int):
+    return list(Administrator.objects.filter(filial_id=filial_id))
 
 
 @sync_to_async
 def get_all_admin_ids() -> list[int]:
-    user_ids = list(Administator.objects.values_list('user_id', flat=True))
+    user_ids = list(Administrator.objects.values_list('telegram_id', flat=True))
     print(user_ids)
     return user_ids
 
@@ -81,12 +90,14 @@ def get_all_addresses()-> list[str]:
 
 
 @sync_to_async
-def get_latest_location():
-    return Location.objects.last()
+def get_filial_location(user_id):
+    admin = Administrator.objects.filter(telegram_id=user_id).first()
+    return Location.objects.filter(filaal = admin.filial).last()
 
 
 @sync_to_async
-def save_location(name, lat, lon):
+def save_location(name, lat, lon, user_id):
+    admin = Administrator.objects.get(telegram_id=user_id)
     Location.objects.all().delete()  # eski barcha locationlarni o‘chirish
     Location.objects.create(name=name, latitude=lat, longitude=lon)
     
@@ -116,7 +127,7 @@ def get_all_weekdays():
 
 @sync_to_async
 def save_work_schedule(user_id, data):
-    admin = Administator.objects.filter(user_id=user_id).first()
+    admin = Administrator.objects.filter(telegram_id=user_id).first()
 
     employee = Employee.objects.filter(user_id=data["employee_id"]).first()
     if not employee:
@@ -224,13 +235,15 @@ def get_employee_schedule_text(employee_id: int) -> str:
 #     return full_path
 
 @sync_to_async
-def generate_attendance_excel_file(start_date, end_date, file_name="hisobot.xlsx"):
+def generate_attendance_excel_file(user_id, start_date, end_date, file_name="hisobot.xlsx"):
     import os
     import pandas as pd
     from datetime import datetime, timedelta
     from openpyxl.styles import PatternFill
     from openpyxl.utils import get_column_letter
-
+    
+    
+    admin = Administrator.objects.filter(telegram_id=user_id).first()
     data = []
     current_date = start_date
     while current_date <= end_date:
@@ -240,7 +253,7 @@ def generate_attendance_excel_file(start_date, end_date, file_name="hisobot.xlsx
             current_date += timedelta(days=1)
             continue
 
-        schedules = WorkSchedule.objects.filter(weekday=weekday).select_related('employee')
+        schedules = WorkSchedule.objects.filter(weekday=weekday, employee_filial_id = admin.filial.id).select_related('employee')
 
         for schedule in schedules:
             emp = schedule.employee
