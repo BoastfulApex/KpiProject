@@ -276,7 +276,7 @@ def generate_attendance_excel_file(user_id, start_date, end_date, file_name="his
         schedules = WorkSchedule.objects.filter(weekday=weekday, employee__filial_id = admin.filial.id).all()
 
         for schedule in schedules:
-            if not schedule.employee.created_at.date() >= current_date:
+            if not schedule.employee.created_at.date() <= current_date.date():
                 continue
             emp = schedule.employee
             attendance = Attendance.objects.filter(employee=emp, date=current_date).first()
