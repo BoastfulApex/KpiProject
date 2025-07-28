@@ -107,7 +107,7 @@ def admin_create(request):
     if request.method == 'POST':
         form = AdminUserForm(request.POST)
         if form.is_valid():
-            form.save()
+            form.save(commit=True)
             return redirect('admin_adminstrators')
     else:
         form = AdminUserForm()

@@ -62,8 +62,8 @@ class AdminUserForm(forms.ModelForm):
         fields = ['telegram_id', 'full_name', 'filial']
 
     def save(self, commit=True):
-        # Agar instance mavjud bo'lsa, mavjud userni yangilaymiz
-        if self.instance and self.instance.user:
+        # Mavjud instance bormi va unga biriktirilgan user bormi?
+        if self.instance and hasattr(self.instance, 'user'):
             user = self.instance.user  # Mavjud user
             user.username = self.cleaned_data['username']
             user.first_name = self.cleaned_data['full_name']
@@ -85,6 +85,9 @@ class AdminUserForm(forms.ModelForm):
             user.is_superuser = False
             if commit:
                 user.save()
+        
+        # So‘ng user ni instance bilan bog‘lab qo‘ying (masalan OneToOneField bo‘lsa)
+        self.instance.user = user
 
         admin = super().save(commit=False)
         admin.user = user
@@ -93,4 +96,4 @@ class AdminUserForm(forms.ModelForm):
         admin.filial = self.cleaned_data['filial']
         if commit:
             admin.save()
-        return admin
+        return super().save(commit=commit)
