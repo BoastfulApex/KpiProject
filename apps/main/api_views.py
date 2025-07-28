@@ -91,7 +91,10 @@ class SimpleCheckAPIView(generics.ListCreateAPIView):
             date=today
         )
 
-        if check_type == 'check_out':
+        if check_type == 'check_in':
+            if not attendance.check_in:
+                attendance.check_in = now_time
+        elif check_type == 'check_out':
             attendance.check_out = now_time
 
         attendance.save()
