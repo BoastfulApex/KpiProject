@@ -105,7 +105,7 @@ async def process_date_range(message: Message, state: FSMContext):
 
     # ✅ To‘g‘ri bo‘lsa, holatni yangilang yoki keyingi bosqichga o‘ting
     
-    file_path = await generate_attendance_excel_file(start_date, end_date, user_id=message.from_user.id)
+    file_path = await generate_attendance_excel_file(start_date=start_date, end_date=end_date, user_id=message.from_user.id)
     file = FSInputFile(file_path, filename="hisobot.xlsx")
     await message.answer_document(file, caption="📊 Hisobot tayyor!")
     await message.answer(f"✅ Sana oralig‘i qabul qilindi:\n📅 {start_date.date()} — {end_date.date()}")
