@@ -98,33 +98,34 @@ class SimpleCheckAPIView(generics.ListCreateAPIView):
 
         attendance.save()
         
-        admin = Administrator.objects.filter(filial=employee.filial).first()
-        if admin and admin.telegram_id:
-            msg_lines = [
-                f"🧑‍💼 Xodim: {employee.name}",
-                f"📅 Sana: {today.strftime('%Y-%m-%d')}",
-                f"🕒 Turi: {'Keldi' if check_type == 'check_in' else 'Ketdi'}",
-                f"📍 Masofa: {round(distance, 1)} metr",
-            ]
-            print('Hafta kuni:', today.strftime('%A'))
-            jadval = WorkSchedule.objects.filter(employee=employee, weekday=today.weekday()).first()
-            if jadval:
-                expected_time = jadval.start if check_type == 'check_in' else jadval.end
-                delta_sec = get_time_difference(expected_time, now_time)
-                min_diff = abs(delta_sec) // 60
+        admins = Administrator.objects.filter(filial=employee.filial).all()
+        for admin in admins:
+            if admin and admin.telegram_id:
+                msg_lines = [
+                    f"🧑‍💼 Xodim: {employee.name}",
+                    f"📅 Sana: {today.strftime('%Y-%m-%d')}",
+                    f"🕒 Turi: {'Keldi' if check_type == 'check_in' else 'Ketdi'}",
+                    f"📍 Masofa: {round(distance, 1)} metr",
+                ]
+                print('Hafta kuni:', today.strftime('%A'))
+                jadval = WorkSchedule.objects.filter(employee=employee, weekday=today.weekday()).first()
+                if jadval:
+                    expected_time = jadval.start if check_type == 'check_in' else jadval.end
+                    delta_sec = get_time_difference(expected_time, now_time)
+                    min_diff = abs(delta_sec) // 60
 
-                if delta_sec > 0:
-                    msg_lines.append(f"⌛ Kechikdi: {min_diff} daqiqa")
-                elif delta_sec < 0:
-                    msg_lines.append(f"⏱️ Erta keldi: {min_diff} daqiqa")
-                else:
-                    msg_lines.append("✅ O‘z vaqtida")
-    
-            msg_lines.append("✅ Holat: Qabul qilindi")
-    
-            message_text = "\n".join(msg_lines)
-            
-            send_telegram_message_to_admin(admin.telegram_id, message_text)
+                    if delta_sec > 0:
+                        msg_lines.append(f"⌛ Kechikdi: {min_diff} daqiqa")
+                    elif delta_sec < 0:
+                        msg_lines.append(f"⏱️ Erta keldi: {min_diff} daqiqa")
+                    else:
+                        msg_lines.append("✅ O‘z vaqtida")
+        
+                msg_lines.append("✅ Holat: Qabul qilindi")
+        
+                message_text = "\n".join(msg_lines)
+                
+                send_telegram_message_to_admin(admin.telegram_id, message_text)
 
         return Response({
             "status": "SUCCESS",
