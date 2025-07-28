@@ -261,8 +261,6 @@ def generate_attendance_excel_file(user_id, start_date, end_date, file_name="his
     import os
     import pandas as pd
     from datetime import datetime, timedelta
-    from openpyxl.styles import PatternFill
-    from openpyxl.utils import get_column_letter
     
     
     admin = Administrator.objects.filter(telegram_id=user_id).first()
