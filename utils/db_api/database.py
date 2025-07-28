@@ -308,5 +308,6 @@ def generate_attendance_excel_file(user_id, start_date, end_date, file_name="his
     dir_path = "files/reports"
     os.makedirs(dir_path, exist_ok=True)
     full_path = os.path.join(dir_path, file_name)
+    df.to_excel(full_path, index=False)
     print(full_path)
     return full_path
