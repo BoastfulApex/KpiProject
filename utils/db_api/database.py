@@ -307,30 +307,8 @@ def generate_attendance_excel_file(user_id, start_date, end_date, file_name="his
 
     df = pd.DataFrame(data)
 
-    dir_path = "media/reports"
+    dir_path = "files/reports"
     os.makedirs(dir_path, exist_ok=True)
     full_path = os.path.join(dir_path, file_name)
-
-    with pd.ExcelWriter(full_path, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False, sheet_name="Hisobot")
-        workbook = writer.book
-        worksheet = writer.sheets["Hisobot"]
-
-        red_fill = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
-
-        # Amalda kirgan va Amalda chiqqan ustun raqamlari (1-indeksdan boshlab)
-        columns = df.columns.tolist()
-        check_in_col_idx = columns.index("Amalda kirgan") + 1
-        check_out_col_idx = columns.index("Amalda chiqqan") + 1
-
-        for row in range(2, len(df) + 2):  # Excelda 1-qator sarlavha, shuning uchun 2-dan boshlanadi
-            check_in_val = worksheet.cell(row=row, column=check_in_col_idx).value
-            check_out_val = worksheet.cell(row=row, column=check_out_col_idx).value
-
-            if check_in_val == "-":
-                worksheet.cell(row=row, column=check_in_col_idx).fill = red_fill
-            if check_out_val == "-":
-                worksheet.cell(row=row, column=check_out_col_idx).fill = red_fill
-
     print(full_path)
     return full_path
