@@ -20,7 +20,8 @@ def index(request):
     cashback = []
     filial = ''
     admin = None
-    
+    tashkent_time = timezone.localtime(timezone.now())
+    print(tashkent_time)
     if request.user.is_superuser:
         template = 'home/superuser/super_dashboard.html'
     elif not request.user.is_superuser:
@@ -32,8 +33,8 @@ def index(request):
     context = {
         'segment': 'dashboard',
         'cashbacks': cashback,
-        "filial": filial
-
+        "filial": filial,
+        'tashkent_time': tashkent_time
     }
     
     html_template = loader.get_template(template)
@@ -52,10 +53,13 @@ def employees(request):
     paginator = Paginator(employees, 50)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
+    tashkent_time = timezone.localtime(timezone.now())
+
     context = {
         'page_obj': page_obj,
         "segment": "employees",
-        "filial": administrator.filial.filial_name
+        "filial": administrator.filial.filial_name,
+        'tashkent_time': tashkent_time
     }
     html_template = loader.get_template('home/user/employees/employees.html')
     return HttpResponse(html_template.render(context, request))
@@ -66,6 +70,7 @@ def employee_create(request):
     if request.user.is_superuser:
         return redirect('/login/')
     administrator = Administrator.objects.get(user=request.user)
+    tashkent_time = timezone.localtime(timezone.now())
 
     if request.method == 'POST':
         form = EmployeeForm(request.POST, request.FILES)
@@ -82,7 +87,8 @@ def employee_create(request):
                   'home/user/employees/employee_create.html',
                   {'form': form,
                    "filial": administrator.filial.filial_name,
-                   "segment": "employees"})
+                   "segment": "employees",
+        'tashkent_time': tashkent_time})
 
 
 @login_required(login_url="/login/")
@@ -91,6 +97,7 @@ def employee_detail(request, pk):
         return redirect('/login/')
     administrator = Administrator.objects.get(user=request.user)
     employee = Employee.objects.get(id=pk)
+    tashkent_time = timezone.localtime(timezone.now())
     if employee.filial != administrator.filial:
         return redirect('dashboard')
     
@@ -104,7 +111,7 @@ def employee_detail(request, pk):
 
     return render(request,
                   'home/user/employees/employee_detail.html',
-                  {'form': form, 'segment': 'employees', 'employee': employee})
+                  {'form': form, 'segment': 'employees', 'employee': employee, 'tashkent_time': tashkent_time})
 
 
 class EmployeeDelete(DeleteView):
@@ -119,6 +126,7 @@ def schedules(request):
         return redirect('/login/')
     
     administrator = Administrator.objects.get(user=request.user)
+    tashkent_time = timezone.localtime(timezone.now())
 
     all_schedules = WorkSchedule.objects.filter(employee__filial__id= administrator.filial.id)
     search_query = request.GET.get('q')
@@ -130,7 +138,8 @@ def schedules(request):
     context = {
         'page_obj': page_obj,
         "segment": "schedules",
-        "filial": administrator.filial.filial_name
+        "filial": administrator.filial.filial_name,
+        'tashkent_time': tashkent_time
     }
     html_template = loader.get_template('home/user/workschedule/schedules.html')
     return HttpResponse(html_template.render(context, request))
@@ -138,7 +147,7 @@ def schedules(request):
 
 def create_schedule_for_employee(request, employee_id):
     employee = get_object_or_404(Employee, id=employee_id)
-
+    tashkent_time = timezone.localtime(timezone.now())
     if request.method == 'POST':
         form = WorkScheduleForm(request.POST)
         if form.is_valid():
@@ -151,7 +160,7 @@ def create_schedule_for_employee(request, employee_id):
         form = WorkScheduleForm()
 
     return render(request, 'home/user/workschedule/create_schedule_for_employee.html', 
-                  {'form': form, 'employee': employee})
+                  {'form': form, 'employee': employee, 'tashkent_time': tashkent_time})
 
     
 @login_required(login_url="/login/")
@@ -159,6 +168,7 @@ def create_schedule(request):
     if request.user.is_superuser:
         return redirect('/login/')
     administrator = Administrator.objects.get(user=request.user)
+    tashkent_time = timezone.localtime(timezone.now())
 
     if request.method == 'POST':
         form = WorkScheduleWithUserForm(request.POST, admin=administrator)
@@ -170,7 +180,7 @@ def create_schedule(request):
     return render(request, 'home/user/workschedule/schedule_create.html', 
                   {'form': form, 
                    "filial": administrator.filial.filial_name,
-                   "segment": "schedules"})
+                   "segment": "schedules",  'tashkent_time': tashkent_time})
 
 
 class WorkScheduleDelete(DeleteView):
