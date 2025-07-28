@@ -102,10 +102,9 @@ class SimpleCheckAPIView(generics.ListCreateAPIView):
                 msg_lines = [
                     f"🧑‍💼 Xodim: {employee.name}",
                     f"📅 Sana: {today.strftime('%Y-%m-%d')}",
-                    f"🕒 Turi: {'Keldi' if check_type == 'check_in' else 'Ketdi'}",
+                    f"🕒 Turi: {'Keldi' if check_type == 'check_in' else 'Ketdi'}  {now_time}",
                     f"📍 Masofa: {round(distance, 1)} metr",
                 ]
-                print('Hafta kuni:', today.strftime('%A'))
                 jadval = WorkSchedule.objects.filter(employee=employee, weekday=today.weekday()).first()
                 if jadval:
                     expected_time = jadval.start if check_type == 'check_in' else jadval.end
