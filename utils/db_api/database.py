@@ -273,7 +273,7 @@ def generate_attendance_excel_file(user_id, start_date, end_date, file_name="his
             current_date += timedelta(days=1)
             continue
 
-        schedules = WorkSchedule.objects.filter(weekday=weekday, employee_filial_id = admin.filial.id).select_related('employee')
+        schedules = WorkSchedule.objects.filter(weekday=weekday, employee__filial_id = admin.filial.id).all()
 
         for schedule in schedules:
             emp = schedule.employee
