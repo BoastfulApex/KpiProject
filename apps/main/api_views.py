@@ -92,8 +92,6 @@ class SimpleCheckAPIView(generics.ListCreateAPIView):
         )
 
         if check_type == 'check_out':
-            if attendance.check_out:
-                return Response({"status": "ALREADY_CHECKED_OUT", "time": attendance.check_out.strftime('%H:%M:%S')})
             attendance.check_out = now_time
 
         attendance.save()
