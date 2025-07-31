@@ -1,0 +1,153 @@
+{% extends "layouts/base.html" %}
+{% load static %}
+{% block title %} Hisobotlar {% endblock %}
+
+<!-- Element injected in the BODY element -->
+{% block body_class %} dashboard {% endblock body_class %}
+
+<!-- Specific Page CSS goes HERE  -->
+{% block stylesheets %}
+<link href="{% static 'css/app.css' %}" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+
+{% endblock stylesheets %}
+
+{% block content %}
+<!-- Content Wrapper. Contains page content -->
+<div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1>Hisobotlar</h1>
+                </div>
+            </div>
+        </div><!-- /.container-fluid -->
+    </section>
+
+    <!-- Main content -->
+    <section class="content">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card card-primary">
+                    <div class="card-header">
+                        <h3 class="card-title">Kerakli sanani tanlang</h3>
+                    </div>
+                    <div class="card-body">
+                        <form role="form" method="post" action="" enctype="multipart/form-data">
+                            {% csrf_token %}
+
+                            <div class="form-group col-12 col-md-4">
+                                <label for="inputName">Boshlanish sanasi</label></br>
+                                {{ form.start_date }}
+                            </div>
+                            </br>
+                            <div class="form-group col-12 col-md-4">
+                                <label for="inputName">Tugash sanasi</label></br>
+                                {{ form.end_date }}
+                            </div>
+                            </br>
+                            <div class="row">
+                                <div class="col-12">
+                                    <input type="submit" class="btn btn-success float-right" value="Hisobotni olish">
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <!-- /.card-body -->
+
+                {% if report %}
+                <div class="card">
+                    <div class="card-header bg-info">
+                        <h3 class="card-title">Hisobot natijalari</h3>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-bordered mt-4">
+                            <thead>
+                                <tr>
+                                    <th>T/r</th>
+                                    <th>Sana</th>
+                                    <th>Hafta kuni</th>
+                                    <th>Xodim</th>
+                                    <th>Holati</th>
+                                    <th>Jadval (start - end)</th>
+                                    <th>Kirish</th>
+                                    <th>Chiqish</th>
+                                    <th>Kechikdi (daqiqa)</th>
+                                    <th>Erta ketdi (daqiqa)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in report %}
+                                <tr>
+                                    <td>{{ row.index }}</td>
+                                    <td>{{ row.date }}</td>
+                                    <td>{{ row.weekday }}</td>
+                                    <td>{{ row.employee }}</td>
+                                    <td>{{ row.status }}</td>
+                                    <td>{{ row.schedule_start }} - {{ row.schedule_end }}</td>
+                                    <td>{{ row.check_in }}</td>
+                                    <td>{{ row.check_out }}</td>
+                                    <td>{{ row.late_minutes }}</td>
+                                    <td>{{ row.early_leave_minutes }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+
+                        <!-- Sahifalash navigatsiyasi -->
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination justify-content-center">
+                                {% if report.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ report.previous_page_number }}" aria-label="Oldingi">
+                                            <span aria-hidden="true">&laquo;</span>
+                                        </a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+                                {% endif %}
+
+                                {% for num in report.paginator.page_range %}
+                                    {% if report.number == num %}
+                                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                                    {% else %}
+                                        <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                                    {% endif %}
+                                {% endfor %}
+
+                                {% if report.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ report.next_page_number }}" aria-label="Keyingi">
+                                            <span aria-hidden="true">&raquo;</span>
+                                        </a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+
+                    </div>
+                </div>
+                {% endif %}
+
+            </div><!-- /.card -->
+        </div><!-- /.row -->
+    </section>
+    <!-- /.content -->
+</div>
+
+{% endblock content %}
+{% block javascripts %}
+<script src="{% static 'js/app.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+  flatpickr(".datepicker", {
+    dateFormat: "Y-m-d",
+    locale: "uz"
+  });
+</script>
+{% endblock javascripts %}
