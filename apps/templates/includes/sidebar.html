@@ -23,6 +23,11 @@
                     <i class="align-middle" data-feather="list"></i> <span class="align-middle">Ish jadvallari</span>
                 </a>
             </li>
+            <li class="sidebar-item {% if 'schedules' in segment %} active {% endif %}">
+                <a class="sidebar-link " href="{% url 'home_get_dates' %}">
+                    <i class="align-middle" data-feather="calendar"></i> <span class="align-middle">Hisobotlar</span>
+                </a>
+            </li>
             {% endif %}
 
 

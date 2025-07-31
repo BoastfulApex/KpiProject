@@ -16,7 +16,8 @@ urlpatterns = [
     path('schedules/', views.schedules, name='schedules'),
     path('schedule_delete/<int:pk>', views.WorkScheduleDelete.as_view(), name='schedule_delete'),
     path('schedule_create/', views.create_schedule, name='schedule_create'),
-
+    path('report/', views.get_report_date, name='home_get_dates'),
+    path('show_report_dates/', views.show_dates_view, name='show_dates'),
     
     # path('users/', views.users_view, name='users'),
     # path('categories/', views.categories, name='home_categories'),

@@ -103,8 +103,16 @@ class WorkScheduleWithUserForm(forms.ModelForm):
 
         self.fields['employee'].widget.attrs.update({'class': 'form-control'})
         
-           
-            
+
+class AttendanceDateRangeForm(forms.Form):
+    start_date = forms.DateField(
+        widget=forms.DateInput(attrs={"class": "form-control datepicker", "placeholder": "Boshlanish sanasi"})
+    )
+    end_date = forms.DateField(
+        widget=forms.DateInput(attrs={"class": "form-control datepicker", "placeholder": "Tugash sanasi"})
+    )
+
+
 # class CategoryForm(forms.ModelForm):
 #     groupname = forms.CharField(
 #         widget=forms.TextInput(
