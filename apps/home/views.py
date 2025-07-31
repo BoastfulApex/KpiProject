@@ -13,6 +13,7 @@ from django.urls import reverse
 from django.shortcuts import get_object_or_404
 from datetime import timedelta, datetime
 import calendar
+from django.core.paginator import Paginator
 
 
 def index(request):
@@ -193,6 +194,7 @@ class WorkScheduleDelete(DeleteView):
 
 def get_report_date(request):
     report = []
+    page_obj = []
     
     if request.method == 'POST':
         form = AttendanceDateRangeForm(request.POST)
@@ -207,6 +209,7 @@ def get_report_date(request):
                 # Weekday obyektini olish
                 try:
                     weekday_obj = Weekday.objects.get(name_en=weekday_name)
+                    week_uz = weekday_obj.name
                 except Weekday.DoesNotExist:
                     current += delta
                     continue
@@ -247,8 +250,9 @@ def get_report_date(request):
                             early_leave_minutes = 0
 
                     report.append({
+                        'index': len(report) + 1,
                         'date': current,
-                        'weekday': weekday_name,
+                        'weekday': week_uz,
                         'employee': employee.name,
                         'status': status,
                         'check_in': check_in,
@@ -260,10 +264,14 @@ def get_report_date(request):
                     })
 
                 current += delta
+        paginator = Paginator(report, 20)  # Har bir sahifada 20 ta yozuv
+
+        page_number = request.GET.get("page")
+        page_obj = paginator.get_page(page_number)
     else:
         form = AttendanceDateRangeForm()
     
-    return render(request, 'home/user/report/get_report_date.html', {'form': form, 'report': report})
+    return render(request, 'home/user/report/get_report_date.html', {'form': form, 'report': page_obj})
 
 
 def show_dates_view(request):
