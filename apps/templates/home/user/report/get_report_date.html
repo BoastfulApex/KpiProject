@@ -62,6 +62,9 @@
                 <div class="card">
                     <div class="card-header bg-info">
                         <h3 class="card-title">Hisobot natijalari</h3>
+                        <a href="{% url 'report_download' %}?start_date={{ request.POST.start_date }}&end_date={{ request.POST.end_date }}" class="btn btn-primary mt-2">
+    Excelga yuklab olish
+</a>
                     </div>
                     <div class="card-body">
                         <table class="table table-bordered mt-4">
@@ -98,37 +101,23 @@
                         </table>
 
                         <!-- Sahifalash navigatsiyasi -->
-                        <nav aria-label="Page navigation">
-                            <ul class="pagination justify-content-center">
+                        {% comment %} <div class="pagination">
+                            <span class="step-links">
                                 {% if report.has_previous %}
-                                    <li class="page-item">
-                                        <a class="page-link" href="?page={{ report.previous_page_number }}" aria-label="Oldingi">
-                                            <span aria-hidden="true">&laquo;</span>
-                                        </a>
-                                    </li>
-                                {% else %}
-                                    <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+                                    <a href="?start_date={{ request.GET.start_date }}&end_date={{ request.GET.end_date }}&page=1">&laquo; Boshiga</a>
+                                    <a href="?start_date={{ request.GET.start_date }}&end_date={{ request.GET.end_date }}&page={{ report.previous_page_number }}">&lsaquo; Ortga</a>
                                 {% endif %}
 
-                                {% for num in report.paginator.page_range %}
-                                    {% if report.number == num %}
-                                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
-                                    {% else %}
-                                        <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
-                                    {% endif %}
-                                {% endfor %}
+                                <span class="current-page">
+                                    {{ report.number }} / {{ report.paginator.num_pages }}
+                                </span>
 
                                 {% if report.has_next %}
-                                    <li class="page-item">
-                                        <a class="page-link" href="?page={{ report.next_page_number }}" aria-label="Keyingi">
-                                            <span aria-hidden="true">&raquo;</span>
-                                        </a>
-                                    </li>
-                                {% else %}
-                                    <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+                                    <a href="?start_date={{ request.GET.start_date }}&end_date={{ request.GET.end_date }}&page={{ report.next_page_number }}">Keyingi &rsaquo;</a>
+                                    <a href="?start_date={{ request.GET.start_date }}&end_date={{ request.GET.end_date }}&page={{ report.paginator.num_pages }}">Oxirgi &raquo;</a>
                                 {% endif %}
-                            </ul>
-                        </nav>
+                            </span>
+                        </div> {% endcomment %}
 
                     </div>
                 </div>

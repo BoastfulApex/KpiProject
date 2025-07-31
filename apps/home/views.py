@@ -16,6 +16,78 @@ import calendar
 from django.core.paginator import Paginator
 
 
+def build_report(start_date, end_date):
+    report = []
+    delta = timedelta(days=1)
+    if type(start_date) is str:
+        start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+        end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+
+    current = start_date
+    while current <= end_date:
+        weekday_name = calendar.day_name[current.weekday()]  # e.g. 'Monday'
+        # Weekday obyektini olish
+        try:
+            weekday_obj = Weekday.objects.get(name_en=weekday_name)
+            week_uz = weekday_obj.name
+        except Weekday.DoesNotExist:
+            current += delta
+            continue
+
+        # Ushbu kunda ishlashi kerak bo'lgan xodimlar
+        schedules = WorkSchedule.objects.filter(weekday=weekday_obj).select_related('employee')
+
+        for schedule in schedules:
+            employee = schedule.employee
+            if employee.created_at.date() > current:
+                continue
+            attendance = Attendance.objects.filter(employee=employee, date=current).first()
+
+            # Default holatlar
+            status = "Kelmagan"
+            check_in = "-"
+            check_out = "-"
+            late_minutes = "-"
+            early_leave_minutes = "-"
+
+            if attendance:
+                status = "Kelgan"
+                check_in = attendance.check_in
+                check_out = attendance.check_out
+
+                # Kechikish
+                if check_in and check_in > schedule.start:
+                    late_delta = datetime.combine(current, check_in) - datetime.combine(current, schedule.start)
+                    late_minutes = int(late_delta.total_seconds() / 60)
+                else:
+                    late_minutes = 0
+
+                # Erta ketish
+                if check_out and check_out < schedule.end:
+                    early_delta = datetime.combine(current, schedule.end) - datetime.combine(current, check_out)
+                    early_leave_minutes = int(early_delta.total_seconds() / 60)
+                else:
+                    early_leave_minutes = 0
+
+            report.append({
+                'index': len(report) + 1,
+                'date': current,
+                'weekday': week_uz,
+                'employee': employee.name,
+                'status': status,
+                'check_in': check_in,
+                'check_out': check_out,
+                'schedule_start': schedule.start,
+                'schedule_end': schedule.end,
+                'late_minutes': late_minutes,
+                'early_leave_minutes': early_leave_minutes,
+            })
+
+        current += delta
+    return report
+
+
+
 def index(request):
     if not request.user.is_authenticated:
         return redirect('/login/')
@@ -201,81 +273,43 @@ def get_report_date(request):
         if form.is_valid():
             start_date = form.cleaned_data['start_date']
             end_date = form.cleaned_data['end_date']
-            delta = timedelta(days=1)
-
-            current = start_date
-            while current <= end_date:
-                weekday_name = calendar.day_name[current.weekday()]  # e.g. 'Monday'
-                # Weekday obyektini olish
-                try:
-                    weekday_obj = Weekday.objects.get(name_en=weekday_name)
-                    week_uz = weekday_obj.name
-                except Weekday.DoesNotExist:
-                    current += delta
-                    continue
-
-                # Ushbu kunda ishlashi kerak bo'lgan xodimlar
-                schedules = WorkSchedule.objects.filter(weekday=weekday_obj).select_related('employee')
-
-                for schedule in schedules:
-                    employee = schedule.employee
-                    if employee.created_at.date() > current:
-                        continue
-                    attendance = Attendance.objects.filter(employee=employee, date=current).first()
-
-                    # Default holatlar
-                    status = "Kelmagan"
-                    check_in = "-"
-                    check_out = "-"
-                    late_minutes = "-"
-                    early_leave_minutes = "-"
-
-                    if attendance:
-                        status = "Kelgan"
-                        check_in = attendance.check_in
-                        check_out = attendance.check_out
-
-                        # Kechikish
-                        if check_in and check_in > schedule.start:
-                            late_delta = datetime.combine(current, check_in) - datetime.combine(current, schedule.start)
-                            late_minutes = int(late_delta.total_seconds() / 60)
-                        else:
-                            late_minutes = 0
-
-                        # Erta ketish
-                        if check_out and check_out < schedule.end:
-                            early_delta = datetime.combine(current, schedule.end) - datetime.combine(current, check_out)
-                            early_leave_minutes = int(early_delta.total_seconds() / 60)
-                        else:
-                            early_leave_minutes = 0
-
-                    report.append({
-                        'index': len(report) + 1,
-                        'date': current,
-                        'weekday': week_uz,
-                        'employee': employee.name,
-                        'status': status,
-                        'check_in': check_in,
-                        'check_out': check_out,
-                        'schedule_start': schedule.start,
-                        'schedule_end': schedule.end,
-                        'late_minutes': late_minutes,
-                        'early_leave_minutes': early_leave_minutes,
-                    })
-
-                current += delta
-        paginator = Paginator(report, 20)  # Har bir sahifada 20 ta yozuv
+            report = build_report(start_date, end_date)
+        paginator = Paginator(report, 5)  # Har bir sahifada 20 ta yozuv
 
         page_number = request.GET.get("page")
         page_obj = paginator.get_page(page_number)
     else:
         form = AttendanceDateRangeForm()
     
-    return render(request, 'home/user/report/get_report_date.html', {'form': form, 'report': page_obj})
+    return render(request, 'home/user/report/get_report_date.html', {'form': form, 'report': report, 'segment': 'report'})
 
 
-def show_dates_view(request):
-    start = request.session.get('start_date')
-    end = request.session.get('end_date')
-    return render(request, 'home/user/report/show_dates.html', {'start': start, 'end': end})
+import openpyxl
+from django.http import HttpResponse
+
+def download_excel(request):
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+
+    if not start_date or not end_date:
+        return redirect('home_get_dates')
+
+    data = build_report(start_date, end_date)
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.append(['Sana', 'Hafta kuni', 'Xodim', 'Holati', 'Jadval', 'Kirish', 'Chiqish', 'Kechikdi', 'Erta ketdi'])
+
+    for row in data:
+        ws.append([
+            row['date'], row['weekday'], row['employee'], row['status'],
+            f"{row['schedule_start']} - {row['schedule_end']}",
+            row['check_in'], row['check_out'], row['late_minutes'], row['early_leave_minutes']
+        ])
+
+    # Javobni sozlash
+    response = HttpResponse(content_type='application/ms-excel')
+    response['Content-Disposition'] = 'attachment; filename=hisobot.xlsx'
+    wb.save(response)
+    return response
 
