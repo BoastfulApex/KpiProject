@@ -18,7 +18,9 @@ urlpatterns = [
     path('schedule_create/', views.create_schedule, name='schedule_create'),
     path('report/', views.get_report_date, name='home_get_dates'),
     path('report/download/', views.download_excel, name='report_download'),
+    path('employees/<int:pk>/report/', views.employee_report, name='employee_report'),
     
+
     # path('users/', views.users_view, name='users'),
     # path('categories/', views.categories, name='home_categories'),
     # path('categories/<int:pk>', views.category_detail, name='category_update'),

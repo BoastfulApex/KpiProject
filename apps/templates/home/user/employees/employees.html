@@ -54,10 +54,15 @@
 											<td class="d-none d-xl-table-cell">{{ employee.user_id }}</td>
 											<td class="d-none d-md-table-cell">
 
-												<div class="col-auto">
+												<div class="col-auto d-flex">
 													<div class="stat text-primary">
 														<a href="{% url 'employee_update' employee.id %}">
 															<i class="align-middle" data-feather="edit-3"></i>
+														</a>
+													</div>
+													<div class="stat text-primary">
+														<a href="{% url 'employee_report' employee.id %}" title="Hisobot">
+															<i class="align-middle" data-feather="calendar"></i>
 														</a>
 													</div>
 												</div>

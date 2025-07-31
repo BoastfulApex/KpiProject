@@ -87,6 +87,79 @@ def build_report(start_date, end_date):
     return report
 
 
+def build_report_for_employee(employee_id, start_date, end_date):
+    report = []
+    delta = timedelta(days=1)
+
+    if type(start_date) is str:
+        start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+        end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+
+    current = start_date
+    employee = Employee.objects.get(id=employee_id)
+
+    while current <= end_date:
+        weekday_name = calendar.day_name[current.weekday()]
+        try:
+            weekday_obj = Weekday.objects.get(name_en=weekday_name)
+            week_uz = weekday_obj.name
+        except Weekday.DoesNotExist:
+            current += delta
+            continue
+
+        try:
+            schedule = WorkSchedule.objects.get(employee=employee, weekday=weekday_obj)
+        except WorkSchedule.DoesNotExist:
+            current += delta
+            continue
+
+        if employee.created_at.date() > current:
+            current += delta
+            continue
+
+        attendance = Attendance.objects.filter(employee=employee, date=current).first()
+
+        status = "Kelmagan"
+        check_in = "-"
+        check_out = "-"
+        late_minutes = "-"
+        early_leave_minutes = "-"
+
+        if attendance:
+            status = "Kelgan"
+            check_in = attendance.check_in
+            check_out = attendance.check_out
+
+            if check_in and check_in > schedule.start:
+                late_delta = datetime.combine(current, check_in) - datetime.combine(current, schedule.start)
+                late_minutes = int(late_delta.total_seconds() / 60)
+            else:
+                late_minutes = 0
+
+            if check_out and check_out < schedule.end:
+                early_delta = datetime.combine(current, schedule.end) - datetime.combine(current, check_out)
+                early_leave_minutes = int(early_delta.total_seconds() / 60)
+            else:
+                early_leave_minutes = 0
+
+        report.append({
+            'index': len(report) + 1,
+            'date': current,
+            'weekday': week_uz,
+            'employee': employee.name,
+            'status': status,
+            'check_in': check_in,
+            'check_out': check_out,
+            'schedule_start': schedule.start,
+            'schedule_end': schedule.end,
+            'late_minutes': late_minutes,
+            'early_leave_minutes': early_leave_minutes,
+        })
+
+        current += delta
+
+    return report
+
 
 def index(request):
     if not request.user.is_authenticated:
@@ -313,3 +386,23 @@ def download_excel(request):
     wb.save(response)
     return response
 
+
+def employee_report(request, pk):
+    employee = Employee.objects.get(id=pk)
+    report = []
+    
+    if request.method == 'POST':
+        form = AttendanceDateRangeForm(request.POST)
+        if form.is_valid():
+            start_date = form.cleaned_data['start_date']
+            end_date = form.cleaned_data['end_date']
+            report = build_report_for_employee(pk, start_date, end_date)
+
+    else:
+        form = AttendanceDateRangeForm()
+        
+    return render(request, 'home/user/report/get_report_date.html', {
+        'employee': employee,
+        'form': form,
+        'report': report
+    })
