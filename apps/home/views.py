@@ -413,7 +413,7 @@ def employee_report(request, pk):
         'employee': employee,
         'form': form,
         'report': report,
-        'segment': 'employee',
+        'segment': 'employees',
     })
 
 
