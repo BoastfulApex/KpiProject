@@ -11,5 +11,6 @@ urlpatterns = [
     path('admins/create/', views.admin_create, name='admin_adminstrator_create'),
     path('admins/<int:pk>/', views.admin_detail, name='admin_adminstrator_detail'),
     path('admins/<int:pk>/delete/', views.AdminstratorDeleteView.as_view(), name='admin_adminstrator_delete'),
-    
+    path('select-filial/<str:filial_id>/', views.select_filial, name='admin_select_filial'),
+   
 ]

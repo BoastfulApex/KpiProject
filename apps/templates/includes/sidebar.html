@@ -11,7 +11,7 @@
                 </a>
             </li>
 
-            {% if request.user.is_superuser == False and request.user.is_staff == True %}
+            {% if request.user.is_superuser == False or request.session.selected_filial_id != 'super_admin' %}
             
             <li class="sidebar-item {% if 'employees' in segment %} active {% endif %}">
                 <a class="sidebar-link " href="{% url 'employees' %}">
@@ -31,7 +31,7 @@
             {% endif %}
 
 
-            {% if request.user.is_superuser == True %}
+            {% if request.user.is_superuser == True and request.session.selected_filial_id == 'super_admin'%}
             <li class="sidebar-item {% if 'filials' in segment %} active {% endif %}">
                 <a class="sidebar-link" href="{% url 'admin_filials' %}">
                     <i class="align-middle" data-feather="map-pin"></i> <span class="align-middle">Filials</span>

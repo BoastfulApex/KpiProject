@@ -3,7 +3,7 @@
           <i class="hamburger align-self-center"></i>
        </a>
 
-<div class="navbar-collapse collapse">
+{% comment %} <div class="navbar-collapse collapse">
   <ul class="navbar-nav navbar-align">
 
     <!-- Server vaqti ko'rsatilmoqda -->
@@ -45,10 +45,95 @@
         <span class="text-dark">Admin {{ filial }}</span>
       </a>
 
+    <li>
+        <a href=
+           style="color: {% if data.selected_filial_id == 'super_admin' %}blue{% else %}black{% endif %};">
+            🛡️ Super Admin
+        </a>
+    </li>
       <div class="dropdown-menu dropdown-menu-end">
         <form method="post" action="{% url 'logout' %}">
           {% csrf_token %}
           <button type="submit" class="dropdown-item">Chiqish</button>
+        </form>
+      </div>
+    </li>
+
+  </ul>
+</div> {% endcomment %}
+
+<div class="navbar-collapse collapse">
+  <ul class="navbar-nav navbar-align">
+
+    <!-- Server vaqti -->
+    <li class="nav-item">
+      <a class="nav-link" href="#">
+        <span class="text-dark">🕒 Server vaqti: <strong>{{ tashkent_time|date:"d.m.Y H:i" }}</strong></span>
+      </a>
+    </li>
+
+    <!-- Xabarlar -->
+    <li class="nav-item dropdown">
+      <a class="nav-icon dropdown-toggle" href="#" id="messagesDropdown" data-bs-toggle="dropdown">
+        <div class="position-relative">
+          <i class="align-middle" data-feather="message-square"></i>
+        </div>
+      </a>
+      <div class="dropdown-menu dropdown-menu-lg dropdown-menu-end py-0" aria-labelledby="messagesDropdown">
+        <div class="dropdown-menu-header">
+          <div class="position-relative">
+            0 ta yangi xabar
+          </div>
+        </div>
+        <div class="dropdown-menu-footer">
+          <a href="#" class="text-muted">Barcha xabarlarni ko‘rish</a>
+        </div>
+      </div>
+    </li>
+
+    <!-- Profil va Filiallar -->
+    <li class="nav-item dropdown">
+      <a class="nav-icon dropdown-toggle d-inline-block d-sm-none" href="#" data-bs-toggle="dropdown">
+        <i class="align-middle" data-feather="settings"></i>
+      </a>
+
+      <a class="nav-link dropdown-toggle d-none d-sm-inline-block" href="#" data-bs-toggle="dropdown">
+        <img src="https://www.shareicon.net/data/512x512/2016/09/01/822711_user_512x512.png"
+             class="avatar img-fluid rounded me-1" alt="User" />
+        <span class="text-dark">Admin {{ filial }}</span>
+      </a>
+
+      <div class="dropdown-menu dropdown-menu-end">
+
+      {% if request.user.is_superuser %}
+        <h6 class="dropdown-header">🏢 Filialni tanlang:</h6>
+
+        <!-- Super Admin tanlovi -->
+        <form method="post" action="{% url 'admin_select_filial' 'super_admin' %}" class="px-3">
+          {% csrf_token %}
+          <button type="submit" class="dropdown-item"
+                  style="color: {% if data.selected_filial_id == 'super_admin' %}blue{% else %}black{% endif %};">
+            🛡️ Super Admin
+          </button>
+        </form>
+
+        <!-- Barcha filiallar -->
+        {% for filial in data.filials %}
+          <form method="post" action="{% url 'admin_select_filial'  filial.id %}" class="px-3">
+            {% csrf_token %}
+            <button type="submit" class="dropdown-item"
+                    style="color: {% if data.selected_filial_id|stringformat:'s' == filial.id|stringformat:'s' %}blue{% else %}black{% endif %};">
+              🏢 {{ filial.filial_name }}
+            </button>
+          </form>
+        {% endfor %}
+
+        <div class="dropdown-divider"></div>
+      {% endif %}
+        <!-- Chiqish -->
+        <form method="post" action="{% url 'logout' %}">
+          {% csrf_token %}
+          <button type="submit" class="dropdown-item">🚪 Chiqish</button>
         </form>
       </div>
     </li>

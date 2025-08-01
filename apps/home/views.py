@@ -173,12 +173,16 @@ def index(request):
     if not request.user.is_authenticated:
         return redirect('/login/')
 
-    cashback = []
+    data = {}
     filial = ''
     admin = None
     tashkent_time = timezone.localtime(timezone.now())
     print(tashkent_time)
     if request.user.is_superuser:
+        filials = Filial.objects.all()
+        data['filials'] = filials
+        selected_filial_id = request.session.get('selected_filial_id', 'super_admin')
+        data['selected_filial_id'] = selected_filial_id
         template = 'home/superuser/super_dashboard.html'
     elif not request.user.is_superuser:
         template = 'home/user/staff_dashboard.html'
@@ -188,13 +192,14 @@ def index(request):
         return redirect('/login/')
     context = {
         'segment': 'dashboard',
-        'cashbacks': cashback,
+        'data': data,
         "filial": filial,
         'tashkent_time': tashkent_time
     }
     
     html_template = loader.get_template(template)
     return HttpResponse(html_template.render(context, request))
+
 
 @login_required(login_url="/login/")
 def employees(request):

@@ -82,7 +82,7 @@ class FilialDelete(DeleteView):
 def admin_list(request):
     if not request.user.is_superuser:
         return redirect('/login/')
-
+    request.session['selected_filial_id'] = 'super_admin'
     admins = Administrator.objects.select_related('user', 'filial')
     search_query = request.GET.get('q')
     if search_query:
@@ -144,3 +144,9 @@ class AdminstratorDeleteView(DeleteView):
     template_name = 'superadmin/administrator_confirm_delete.html'
 
 
+
+def select_filial(request, filial_id):
+    if request.user.is_superuser:
+        print(filial_id)
+        request.session['selected_filial_id'] = filial_id
+    return redirect('home')
