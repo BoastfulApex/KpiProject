@@ -172,18 +172,20 @@ def build_report_for_employee(employee_id, start_date, end_date):
 def index(request):
     if not request.user.is_authenticated:
         return redirect('/login/')
-
     data = {}
     filial = ''
     admin = None
     tashkent_time = timezone.localtime(timezone.now())
-    print(tashkent_time)
     if request.user.is_superuser:
         filials = Filial.objects.all()
         data['filials'] = filials
         selected_filial_id = request.session.get('selected_filial_id', 'super_admin')
         data['selected_filial_id'] = selected_filial_id
         template = 'home/superuser/super_dashboard.html'
+        try:
+            filial = Filial.objects.get(id=int(selected_filial_id)).filial_name
+        except:
+            filial = ''
     elif not request.user.is_superuser:
         template = 'home/user/staff_dashboard.html'
         admin = Administrator.objects.get(user=request.user)
@@ -203,11 +205,21 @@ def index(request):
 
 @login_required(login_url="/login/")
 def employees(request):
+    administrator = None
+    filial = ''
+    data = {}
+    filials = Filial.objects.all()
+    data['filials'] = filials
+    selected_filial_id = ''
     if request.user.is_superuser:
-        return redirect('/login/')
-    administrator = Administrator.objects.get(user=request.user)
-
-    employees = Employee.objects.filter(filial = administrator.filial)
+        selected_filial_id = request.session.get('selected_filial_id', 'super_admin')
+        if selected_filial_id == 'super_admin':
+            return redirect('/home/')
+        filial_id = selected_filial_id
+    else:
+        administrator = Administrator.objects.get(user=request.user)
+        filial_id = administrator.filial.id
+    employees = Employee.objects.filter(filial_id = filial_id)
     search_query = request.GET.get('q')
     if search_query:
         employees = employees.filter(Q(name__icontains=search_query))
@@ -219,8 +231,9 @@ def employees(request):
     context = {
         'page_obj': page_obj,
         "segment": "employees",
-        "filial": administrator.filial.filial_name,
-        'tashkent_time': tashkent_time
+        "filial": employees.first().filial.filial_name,
+        'tashkent_time': tashkent_time,
+        'data': data
     }
     html_template = loader.get_template('home/user/employees/employees.html')
     return HttpResponse(html_template.render(context, request))
@@ -228,17 +241,28 @@ def employees(request):
 
 @login_required(login_url="/login/")
 def employee_create(request):
+    filial_id = ''
+    data = {}
+    filials = Filial.objects.all()
+    data['filials'] = filials
+    selected_filial_id = ''
     if request.user.is_superuser:
-        return redirect('/login/')
-    administrator = Administrator.objects.get(user=request.user)
-    tashkent_time = timezone.localtime(timezone.now())
+        selected_filial_id = request.session.get('selected_filial_id', 'super_admin')
+        if selected_filial_id == 'super_admin':
+            return redirect('/home/')
+        filial_id = selected_filial_id
+    else:
+        filial_id = Administrator.objects.get(user=request.user).filial.id
+        
 
+    tashkent_time = timezone.localtime(timezone.now())
+    filial = Filial.objects.get(id=int(filial_id))
     if request.method == 'POST':
         form = EmployeeForm(request.POST, request.FILES)
         if form.is_valid():
             employee = form.save()
             # return redirect('employees')
-            employee.filial = administrator.filial
+            employee.filial = filial
             employee.save()          
             return redirect(reverse('create_schedule_for_employee', args=[employee.id]))    
     else:
@@ -247,20 +271,30 @@ def employee_create(request):
     return render(request,
                   'home/user/employees/employee_create.html',
                   {'form': form,
-                   "filial": administrator.filial.filial_name,
+                   "filial": filial.filial_name,
                    "segment": "employees",
+                   'data': data,
         'tashkent_time': tashkent_time})
 
 
 @login_required(login_url="/login/")
 def employee_detail(request, pk):
+    filial_id = ''
+    data = {}
+    filials = Filial.objects.all()
+    data['filials'] = filials
+    selected_filial_id = ''
     if request.user.is_superuser:
-        return redirect('/login/')
-    administrator = Administrator.objects.get(user=request.user)
+        selected_filial_id = request.session.get('selected_filial_id', 'super_admin')
+        if selected_filial_id == 'super_admin':
+            return redirect('/home/')
+        filial_id = selected_filial_id
+    else:
+        filial_id = Administrator.objects.get(user=request.user).filial.id
     employee = Employee.objects.get(id=pk)
     tashkent_time = timezone.localtime(timezone.now())
-    if employee.filial != administrator.filial:
-        return redirect('dashboard')
+    if employee.filial_id != int(filial_id):
+        return redirect('home')
     
     if request.method == 'POST':
         form = EmployeeForm(request.POST, request.FILES, instance=employee)
@@ -272,7 +306,11 @@ def employee_detail(request, pk):
 
     return render(request,
                   'home/user/employees/employee_detail.html',
-                  {'form': form, 'segment': 'employees', 'employee': employee, 'tashkent_time': tashkent_time})
+                  {'form': form, 'segment': 'employees', 
+                   'employee': employee, 
+                   'filial': employee.filial.filial_name, 
+                   'tashkent_time': tashkent_time,
+                   'data': data})
 
 
 class EmployeeDelete(DeleteView):
@@ -321,7 +359,8 @@ def create_schedule_for_employee(request, employee_id):
         form = WorkScheduleForm()
 
     return render(request, 'home/user/workschedule/create_schedule_for_employee.html', 
-                  {'form': form, 'employee': employee, 'tashkent_time': tashkent_time})
+                  {'form': form, 'employee': employee, 'filial': employee.filial.filial_name, 
+                   'tashkent_time': tashkent_time})
 
     
 @login_required(login_url="/login/")

@@ -13,12 +13,15 @@ from django.urls import reverse_lazy
 
 @login_required(login_url="/login/")
 def filials(request):
-
+    data = {}
+    
     if not request.user.is_superuser:
         return redirect('/login/')
     
     all_filials = Filial.objects.all()
     search_query = request.GET.get('q')
+    data['filials'] = all_filials
+    request.session['selected_filial_id'] = 'super_admin'
     if search_query:
         all_filials = all_filials.filter(Q(name__icontains=search_query))
     paginator = Paginator(all_filials, 50)
@@ -26,7 +29,8 @@ def filials(request):
     page_obj = paginator.get_page(page_number)
     context = {
         'page_obj': page_obj,
-        "segment": "filials"
+        "segment": "filials",
+        'data': data
     }
     
     html_template = loader.get_template('home/superuser/filials.html')
@@ -35,7 +39,10 @@ def filials(request):
 
 @login_required(login_url="/login/")
 def filial_create(request):
-
+    data = {}
+    filials = Filial.objects.all()
+    data['filials'] = filials
+    request.session['selected_filial_id'] = 'super_admin'
     if not request.user.is_superuser:
         return redirect('/login/')
 
@@ -49,12 +56,16 @@ def filial_create(request):
 
     return render(request,
                   'home/superuser/filial_create.html',
-                  {'form': form,  "segment": "filials"})
+                  {'form': form,  "segment": "filials", 'data': data})
 
 
 @login_required(login_url="/login/")
 def filial_detail(request, pk):
-
+    data = {}
+    filials = Filial.objects.all()
+    data['filials'] = filials
+    request.session['selected_filial_id'] = 'super_admin'
+    
     if not request.user.is_superuser:
         return redirect('/login/')
 
@@ -70,7 +81,7 @@ def filial_detail(request, pk):
 
     return render(request,
                   'home/superuser/filial_detail.html',
-                  {'form': form, 'segment': 'filials', 'filial': filial})
+                  {'form': form, 'segment': 'filials', 'filial': filial, 'data': data})
 
 
 class FilialDelete(DeleteView):
@@ -82,6 +93,10 @@ class FilialDelete(DeleteView):
 def admin_list(request):
     if not request.user.is_superuser:
         return redirect('/login/')
+    data = {}
+    filials = Filial.objects.all()
+    data['filials'] = filials
+        
     request.session['selected_filial_id'] = 'super_admin'
     admins = Administrator.objects.select_related('user', 'filial')
     search_query = request.GET.get('q')
@@ -95,12 +110,17 @@ def admin_list(request):
     page_obj = paginator.get_page(page_number)
     context = {
         'page_obj': page_obj,
-        'segment': 'admins'
+        'segment': 'admins',
+        'data': data
     }
     return render(request, 'home/superuser/adminstrators.html', context)
 
 @login_required(login_url="/login/")
 def admin_create(request):
+    data = {}
+    filials = Filial.objects.all()
+    data['filials'] = filials
+    request.session['selected_filial_id'] = 'super_admin'
     if not request.user.is_superuser:
         return redirect('/login/')
 
@@ -114,7 +134,8 @@ def admin_create(request):
 
     return render(request, 'home/superuser/adminstrator_create.html', {
         'form': form,
-        'segment': 'admins'
+        'segment': 'admins',
+        'data': data
     })
     
 @login_required(login_url="/login/")
@@ -123,7 +144,11 @@ def admin_detail(request, pk):
         return redirect('/login/')
 
     admin = Administrator.objects.get(id=pk)
-
+    data = {}
+    filials = Filial.objects.all()
+    data['filials'] = filials
+    request.session['selected_filial_id'] = 'super_admin'
+    
     if request.method == 'POST':
         form = AdminUserForm(request.POST, request.FILES, instance=admin)
         if form.is_valid():
@@ -135,7 +160,8 @@ def admin_detail(request, pk):
     return render(request, 'home/superuser/adminstrator_detail.html', {
         'form': form,
         'segment': 'admins',
-        'admin': admin
+        'admin': admin,
+        'data': data
     })
     
 class AdminstratorDeleteView(DeleteView):
@@ -147,6 +173,5 @@ class AdminstratorDeleteView(DeleteView):
 
 def select_filial(request, filial_id):
     if request.user.is_superuser:
-        print(filial_id)
         request.session['selected_filial_id'] = filial_id
     return redirect('home')
