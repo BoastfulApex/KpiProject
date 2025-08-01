@@ -62,9 +62,15 @@
                 <div class="card">
                     <div class="card-header bg-info">
                         <h3 class="card-title text-white">Hisobot natijalari</h3>
+                        {% if 'employee' in segment %}
+                        <a href="{% url 'employee_download_excel' employee.id %}?start_date={{ request.POST.start_date }}&end_date={{ request.POST.end_date }} " class="btn btn-primary mt-2">
+                            Excelga yuklab olish
+                        </a>
+                        {% else %}
                         <a href="{% url 'report_download' %}?start_date={{ request.POST.start_date }}&end_date={{ request.POST.end_date }}" class="btn btn-primary mt-2">
-    Excelga yuklab olish
-</a>
+                            Excelga yuklab olish
+                        </a>
+                        {% endif %}
                     </div>
                     <div class="card-body">
                         <table class="table table-bordered mt-4">

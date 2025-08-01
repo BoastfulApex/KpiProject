@@ -19,6 +19,7 @@ urlpatterns = [
     path('report/', views.get_report_date, name='home_get_dates'),
     path('report/download/', views.download_excel, name='report_download'),
     path('employees/<int:pk>/report/', views.employee_report, name='employee_report'),
+    path('employees/<int:pk>/report/download', views.employee_download_excel, name='employee_download_excel'),
     
 
     # path('users/', views.users_view, name='users'),

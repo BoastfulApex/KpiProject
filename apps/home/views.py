@@ -16,12 +16,14 @@ import calendar
 from django.core.paginator import Paginator
 
 
-def build_report(start_date, end_date):
+def build_report(start_date, end_date, user=None):
     report = []
     delta = timedelta(days=1)
     if type(start_date) is str:
         start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
         end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+
+    admin = Administrator.objects.get(user=user)    
 
     current = start_date
     while current <= end_date:
@@ -33,12 +35,18 @@ def build_report(start_date, end_date):
         except Weekday.DoesNotExist:
             current += delta
             continue
+        
 
         # Ushbu kunda ishlashi kerak bo'lgan xodimlar
         schedules = WorkSchedule.objects.filter(weekday=weekday_obj).select_related('employee')
 
         for schedule in schedules:
             employee = schedule.employee
+            
+            # Agar xodim administratorning filialiga tegishli bo'lmasa, o'tkazib yuborish
+            if employee.filial != admin.filial:
+                continue
+            
             if employee.created_at.date() > current:
                 continue
             attendance = Attendance.objects.filter(employee=employee, date=current).first()
@@ -106,7 +114,7 @@ def build_report_for_employee(employee_id, start_date, end_date):
         except Weekday.DoesNotExist:
             current += delta
             continue
-
+        
         try:
             schedule = WorkSchedule.objects.get(employee=employee, weekday=weekday_obj)
         except WorkSchedule.DoesNotExist:
@@ -346,7 +354,7 @@ def get_report_date(request):
         if form.is_valid():
             start_date = form.cleaned_data['start_date']
             end_date = form.cleaned_data['end_date']
-            report = build_report(start_date, end_date)
+            report = build_report(start_date=start_date, end_date=end_date, user=request.user)
         paginator = Paginator(report, 5)  # Har bir sahifada 20 ta yozuv
 
         page_number = request.GET.get("page")
@@ -367,7 +375,7 @@ def download_excel(request):
     if not start_date or not end_date:
         return redirect('home_get_dates')
 
-    data = build_report(start_date, end_date)
+    data = build_report(start_date=start_date, end_date=end_date, user=request.user)
 
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -404,5 +412,33 @@ def employee_report(request, pk):
     return render(request, 'home/user/report/get_report_date.html', {
         'employee': employee,
         'form': form,
-        'report': report
+        'report': report,
+        'segment': 'employee',
     })
+
+
+def employee_download_excel(request, pk):
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+
+    if not start_date or not end_date:
+        return redirect('home_get_dates')
+
+    data = build_report_for_employee(pk, start_date, end_date)
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.append(['Sana', 'Hafta kuni', 'Xodim', 'Holati', 'Jadval', 'Kirish', 'Chiqish', 'Kechikdi', 'Erta ketdi'])
+
+    for row in data:
+        ws.append([
+            row['date'], row['weekday'], row['employee'], row['status'],
+            f"{row['schedule_start']} - {row['schedule_end']}",
+            row['check_in'], row['check_out'], row['late_minutes'], row['early_leave_minutes']
+        ])
+
+    # Javobni sozlash
+    response = HttpResponse(content_type='application/ms-excel')
+    response['Content-Disposition'] = 'attachment; filename=hisobot.xlsx'
+    wb.save(response)
+    return response
