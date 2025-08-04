@@ -321,13 +321,23 @@ class EmployeeDelete(DeleteView):
 
 @login_required(login_url="/login/")
 def schedules(request):
+    filial_id = ''
+    data = {}
+    filial_name = ''
+    filials = Filial.objects.all()
+    data['filials'] = filials
+    selected_filial_id = ''
     if request.user.is_superuser:
-        return redirect('/login/')
-    
-    administrator = Administrator.objects.get(user=request.user)
+        selected_filial_id = request.session.get('selected_filial_id', 'super_admin')
+        if selected_filial_id == 'super_admin':
+            return redirect('/home/')
+        filial_id = selected_filial_id    
+    else:
+        filial_id = Administrator.objects.get(user=request.user).filial.id
+        filial_name = Administrator.objects.get(user=request.user).filial.filial_name
     tashkent_time = timezone.localtime(timezone.now())
-
-    all_schedules = WorkSchedule.objects.filter(employee__filial__id= administrator.filial.id)
+    
+    all_schedules = WorkSchedule.objects.filter(employee__filial__id= filial_id)
     search_query = request.GET.get('q')
     if search_query:
         all_schedules = all_schedules.filter(Q(name__icontains=search_query))
@@ -337,8 +347,9 @@ def schedules(request):
     context = {
         'page_obj': page_obj,
         "segment": "schedules",
-        "filial": administrator.filial.filial_name,
-        'tashkent_time': tashkent_time
+        "filial": filial_name,
+        'tashkent_time': tashkent_time,
+        'data': data
     }
     html_template = loader.get_template('home/user/workschedule/schedules.html')
     return HttpResponse(html_template.render(context, request))
