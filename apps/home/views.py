@@ -16,14 +16,13 @@ import calendar
 from django.core.paginator import Paginator
 
 
-def build_report(start_date, end_date, user=None):
+def build_report(start_date, end_date, filial_id=None):
     report = []
     delta = timedelta(days=1)
     if type(start_date) is str:
         start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
         end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
 
-    admin = Administrator.objects.get(user=user)    
 
     current = start_date
     while current <= end_date:
@@ -44,7 +43,7 @@ def build_report(start_date, end_date, user=None):
             employee = schedule.employee
             
             # Agar xodim administratorning filialiga tegishli bo'lmasa, o'tkazib yuborish
-            if employee.filial != admin.filial:
+            if employee.filial_id != filial_id:
                 continue
             
             if employee.created_at.date() > current:
@@ -356,7 +355,21 @@ def schedules(request):
 
 
 def create_schedule_for_employee(request, employee_id):
+    filial_id = ''
+    data = {}
+    filial_name = ''
+    filials = Filial.objects.all()
+    data['filials'] = filials
+    selected_filial_id = ''
     employee = get_object_or_404(Employee, id=employee_id)
+    if request.user.is_superuser:
+        selected_filial_id = request.session.get('selected_filial_id', 'super_admin')
+        if selected_filial_id == 'super_admin' or employee.filial_id != int(selected_filial_id):
+            return redirect('/home/')
+        filial_id = selected_filial_id    
+    else:
+        filial_id = Administrator.objects.get(user=request.user).filial.id
+        filial_name = Administrator.objects.get(user=request.user).filial.filial_name
     tashkent_time = timezone.localtime(timezone.now())
     if request.method == 'POST':
         form = WorkScheduleForm(request.POST)
@@ -370,17 +383,29 @@ def create_schedule_for_employee(request, employee_id):
         form = WorkScheduleForm()
 
     return render(request, 'home/user/workschedule/create_schedule_for_employee.html', 
-                  {'form': form, 'employee': employee, 'filial': employee.filial.filial_name, 
+                  {'form': form, 'employee': employee, 'filial': employee.filial.filial_name, 'data': data,
                    'tashkent_time': tashkent_time})
 
     
 @login_required(login_url="/login/")
 def create_schedule(request):
+    filial_id = ''
+    data = {}
+    filial_name = ''
+    filials = Filial.objects.all()
+    data['filials'] = filials
+    selected_filial_id = ''
     if request.user.is_superuser:
-        return redirect('/login/')
-    administrator = Administrator.objects.get(user=request.user)
+        selected_filial_id = request.session.get('selected_filial_id', 'super_admin')
+        if selected_filial_id == 'super_admin':
+            return redirect('/home/')
+        filial_id = selected_filial_id
+    else:
+        filial_id = Administrator.objects.get(user=request.user).filial.id
+        filial_name = Administrator.objects.get(user=request.user).filial.filial_name
     tashkent_time = timezone.localtime(timezone.now())
-
+    filial = Filial.objects.get(id=int(filial_id))
+    administrator = Administrator.objects.filter(filial=filial).first()
     if request.method == 'POST':
         form = WorkScheduleWithUserForm(request.POST, admin=administrator)
         if form.is_valid():
@@ -390,8 +415,8 @@ def create_schedule(request):
         form = WorkScheduleWithUserForm(admin=administrator)
     return render(request, 'home/user/workschedule/schedule_create.html', 
                   {'form': form, 
-                   "filial": administrator.filial.filial_name,
-                   "segment": "schedules",  'tashkent_time': tashkent_time})
+                   "filial": filial_name,
+                   "segment": "schedules",  'tashkent_time': tashkent_time, 'data': data})
 
 
 class WorkScheduleDelete(DeleteView):
@@ -403,13 +428,28 @@ class WorkScheduleDelete(DeleteView):
 def get_report_date(request):
     report = []
     page_obj = []
+    filial_id = ''
+    data = {}
+    filial_name = ''
+    filials = Filial.objects.all()
+    data['filials'] = filials
+    selected_filial_id = ''
+    if request.user.is_superuser:
+        selected_filial_id = request.session.get('selected_filial_id', 'super_admin')
+        if selected_filial_id == 'super_admin':
+            return redirect('/home/')
+        filial_id = int(selected_filial_id)
+    else:
+        filial_id = Administrator.objects.get(user=request.user).filial.id
+        filial_name = Administrator.objects.get(user=request.user).filial.filial_name
+    tashkent_time = timezone.localtime(timezone.now())
     
     if request.method == 'POST':
         form = AttendanceDateRangeForm(request.POST)
         if form.is_valid():
             start_date = form.cleaned_data['start_date']
             end_date = form.cleaned_data['end_date']
-            report = build_report(start_date=start_date, end_date=end_date, user=request.user)
+            report = build_report(start_date=start_date, end_date=end_date, filial_id=filial_id)
         paginator = Paginator(report, 5)  # Har bir sahifada 20 ta yozuv
 
         page_number = request.GET.get("page")
@@ -417,20 +457,38 @@ def get_report_date(request):
     else:
         form = AttendanceDateRangeForm()
     
-    return render(request, 'home/user/report/get_report_date.html', {'form': form, 'report': report, 'segment': 'report'})
+    return render(request, 'home/user/report/get_report_date.html', {'form': form, 
+                                                                     'report': report, 
+                                                                     'segment': 'report',
+                                                                     'tashkent_time': tashkent_time,
+                                                                     'filial': filial_name,
+                                                                     'data': data})
 
 
 import openpyxl
 from django.http import HttpResponse
 
 def download_excel(request):
+    filial_id = ''
+    data = {}
+    filials = Filial.objects.all()
+    data['filials'] = filials
+    selected_filial_id = ''
+    if request.user.is_superuser:
+        selected_filial_id = request.session.get('selected_filial_id', 'super_admin')
+        if selected_filial_id == 'super_admin':
+            return redirect('/home/')
+        filial_id = int(selected_filial_id)
+    else:
+        filial_id = Administrator.objects.get(user=request.user).filial.id
+
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
 
     if not start_date or not end_date:
         return redirect('home_get_dates')
 
-    data = build_report(start_date=start_date, end_date=end_date, user=request.user)
+    data = build_report(start_date=start_date, end_date=end_date, filial_id=filial_id)
 
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -453,6 +511,22 @@ def download_excel(request):
 def employee_report(request, pk):
     employee = Employee.objects.get(id=pk)
     report = []
+    page_obj = []
+    filial_id = ''
+    data = {}
+    filial_name = ''
+    filials = Filial.objects.all()
+    data['filials'] = filials
+    selected_filial_id = ''
+    if request.user.is_superuser:
+        selected_filial_id = request.session.get('selected_filial_id', 'super_admin')
+        if selected_filial_id == 'super_admin':
+            return redirect('/home/')
+        filial_id = selected_filial_id
+    else:
+        filial_id = Administrator.objects.get(user=request.user).filial.id
+        filial_name = Administrator.objects.get(user=request.user).filial.filial_name
+    tashkent_time = timezone.localtime(timezone.now())
     
     if request.method == 'POST':
         form = AttendanceDateRangeForm(request.POST)
@@ -468,7 +542,10 @@ def employee_report(request, pk):
         'employee': employee,
         'form': form,
         'report': report,
+        'tashkent_time': tashkent_time,
+        'filial': filial_name,
         'segment': 'employees',
+        'data': data
     })
 
 
