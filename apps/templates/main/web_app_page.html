@@ -90,10 +90,6 @@
         resultIcon.style.color = "#e74c3c";
       }
     }
-
-    setTimeout(() => {
-      tg.close();
-        }, 2000);
         
     function sendLocation(actionType) {
       if (navigator.geolocation) {
@@ -145,6 +141,11 @@
     document.getElementById("exitBtn").addEventListener("click", () => {
       sendLocation("exit");
     });
-  </script>
+
+    setTimeout(() => {
+      tg.close();
+        }, 2000);
+
+</script>
 </body>
 </html>
