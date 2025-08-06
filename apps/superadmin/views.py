@@ -7,6 +7,7 @@ from django.core.paginator import Paginator
 from django.shortcuts import redirect, render
 from apps.authentication.models import *
 from apps.superadmin.forms import *
+from apps.main.forms import *
 from django.views.generic.edit import CreateView, DeleteView, UpdateView
 from django.urls import reverse_lazy
 
@@ -89,6 +90,7 @@ class FilialDelete(DeleteView):
     fields = '__all__'
     success_url = reverse_lazy('admin_filials')
 
+
 @login_required(login_url="/login/")
 def admin_list(request):
     if not request.user.is_superuser:
@@ -115,6 +117,7 @@ def admin_list(request):
     }
     return render(request, 'home/superuser/adminstrators.html', context)
 
+
 @login_required(login_url="/login/")
 def admin_create(request):
     data = {}
@@ -137,6 +140,7 @@ def admin_create(request):
         'segment': 'admins',
         'data': data
     })
+
     
 @login_required(login_url="/login/")
 def admin_detail(request, pk):
@@ -175,3 +179,43 @@ def select_filial(request, filial_id):
     if request.user.is_superuser:
         request.session['selected_filial_id'] = filial_id
     return redirect('home')
+
+
+@login_required(login_url="/login/")
+def locations(request):
+    data = {}
+    
+    if not request.user.is_superuser:
+        return redirect('/login/')
+    
+    all_filials = Filial.objects.all()
+    search_query = request.GET.get('q')
+    data['filials'] = all_filials
+    locations = Location.objects.all()
+    request.session['selected_filial_id'] = 'super_admin'
+    if search_query:
+        locations = locations.filter(Q(address__icontains=search_query))
+    paginator = Paginator(locations, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    context = {
+        'page_obj': page_obj,
+        "segment": "locations",
+        'data': data
+    }
+    
+    html_template = loader.get_template('home/superuser/locations.html')
+    return HttpResponse(html_template.render(context, request))
+
+from django.http import JsonResponse
+
+def create_location_ajax(request):
+    if request.method == 'POST' and request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        form = LocationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return JsonResponse({'success': True})
+        else:
+            return JsonResponse({'success': False, 'errors': form.errors.as_text()})
+    return JsonResponse({'success': False, 'errors': 'Noto‘g‘ri so‘rov'})
+
