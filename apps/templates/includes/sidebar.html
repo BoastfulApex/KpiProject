@@ -34,7 +34,12 @@
             {% if request.user.is_superuser == True and request.session.selected_filial_id == 'super_admin'%}
             <li class="sidebar-item {% if 'filials' in segment %} active {% endif %}">
                 <a class="sidebar-link" href="{% url 'admin_filials' %}">
-                    <i class="align-middle" data-feather="map-pin"></i> <span class="align-middle">Filials</span>
+                    <i class="align-middle" data-feather="home"></i> <span class="align-middle">Filials</span>
+                </a>
+            </li>
+            <li class="sidebar-item {% if 'locations' in segment %} active {% endif %}">
+                <a class="sidebar-link" href="{% url 'admin_locations' %}">
+                    <i class="align-middle" data-feather="map-pin"></i> <span class="align-middle">Manzillar</span>
                 </a>
             </li>
             <li class="sidebar-item {% if 'admins' in segment %} active {% endif %}">

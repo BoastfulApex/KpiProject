@@ -12,5 +12,6 @@ urlpatterns = [
     path('admins/<int:pk>/', views.admin_detail, name='admin_adminstrator_detail'),
     path('admins/<int:pk>/delete/', views.AdminstratorDeleteView.as_view(), name='admin_adminstrator_delete'),
     path('select-filial/<str:filial_id>/', views.select_filial, name='admin_select_filial'),
-   
+    path('locations/', views.locations, name='admin_locations'),
+    path('ajax/create-location/', views.create_location_ajax, name='create_location_ajax'),
 ]
