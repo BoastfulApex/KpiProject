@@ -127,9 +127,9 @@ class SimpleCheckAPIView(generics.ListCreateAPIView):
                         delta_sec = get_time_difference(expected_time, now_time)
                         min_diff = abs(delta_sec) // 60
 
-                        if delta_sec > 0:
+                        if delta_sec < 0:
                             msg_lines.append(f"⏱️ Erta ketdi: {min_diff} daqiqa")
-                        elif delta_sec < 0:
+                        elif delta_sec > 0:
                             msg_lines.append(f"⌛ Kech ketdi: {min_diff} daqiqa")
                         else:
                             msg_lines.append("✅ O‘z vaqtida ketdi")        
