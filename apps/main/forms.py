@@ -116,37 +116,23 @@ class AttendanceDateRangeForm(forms.Form):
 class LocationForm(forms.ModelForm):
     filial = forms.ModelChoiceField(
         queryset=Filial.objects.all(),
-        widget=forms.Select(
-            attrs={
-                "class": "form-control",
-            }
-        ),
+        widget=forms.Select(attrs={"class": "form-control"}),
         required=False,
     )
-
     address = forms.CharField(
-        widget=forms.TextInput(
-            attrs={
-                "placeholder": "To‘liq manzil avtomatik to‘ladi",
-                "class": "form-control",
-                "readonly": "readonly",
-            }
-        ),
+        widget=forms.TextInput(attrs={
+            "placeholder": "To‘liq manzil avtomatik to‘ladi",
+            "class": "form-control",
+            "readonly": "readonly",
+        }),
         required=False,
     )
-
-    latitude = forms.FloatField(
-        widget=forms.HiddenInput()
-    )
-
-    longitude = forms.FloatField(
-        widget=forms.HiddenInput()
-    )
+    latitude = forms.FloatField(widget=forms.HiddenInput())
+    longitude = forms.FloatField(widget=forms.HiddenInput())
 
     class Meta:
         model = Location
-        fields = ['filial', 'address', 'latitude', 'longitude']
-
+        fields = ['filial', 'latitude', 'longitude']
 
 
 # class CategoryForm(forms.ModelForm):

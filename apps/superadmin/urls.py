@@ -14,4 +14,7 @@ urlpatterns = [
     path('select-filial/<str:filial_id>/', views.select_filial, name='admin_select_filial'),
     path('locations/', views.locations, name='admin_locations'),
     path('ajax/create-location/', views.create_location_ajax, name='create_location_ajax'),
+    path('locations/create', views.create_location, name='admin_create_location'),
+    path('locations/<int:pk>/delete/', views.LocationDeleteView.as_view(), name='admin_location_delete'),
+    
 ]

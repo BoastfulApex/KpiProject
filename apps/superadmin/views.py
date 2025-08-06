@@ -10,6 +10,7 @@ from apps.superadmin.forms import *
 from apps.main.forms import *
 from django.views.generic.edit import CreateView, DeleteView, UpdateView
 from django.urls import reverse_lazy
+import requests
 
 
 @login_required(login_url="/login/")
@@ -218,4 +219,54 @@ def create_location_ajax(request):
         else:
             return JsonResponse({'success': False, 'errors': form.errors.as_text()})
     return JsonResponse({'success': False, 'errors': 'Noto‘g‘ri so‘rov'})
+
+
+        
+from geopy.geocoders import Nominatim
+from geopy.exc import GeocoderTimedOut
+
+def get_location_name(lat, lon):
+    geolocator = Nominatim(user_agent="myuzbot (jigar@t.me)")
+    try:
+        location = geolocator.reverse((lat, lon), timeout=10)
+        return location.address if location else "Nomaʼlum manzil"
+    except GeocoderTimedOut:
+        return "Geocoding vaqti tugadi"
+    
+    
+def create_location(request):
+    data = {}
+    filials = Filial.objects.all()
+    data['filials'] = filials
+
+    if request.method == 'POST':
+        form = LocationForm(request.POST)
+        if form.is_valid():
+            filial = form.cleaned_data.get('filial')
+
+            # Eski location bo‘lsa, uni o‘chiramiz
+            old_location = Location.objects.filter(filial=filial).all()
+            if old_location.exists():
+                for loc in old_location:
+                    loc.delete()
+
+            instance = form.save(commit=False)
+
+            # Location nomini olish (masalan, reverse geocoding orqali)
+            name = get_location_name(instance.latitude, instance.longitude)
+            instance.name = name or "Unknown location"
+            instance.address = name
+            instance.save()
+
+            return redirect('admin_locations')  # o'zingiz xohlagan URL nomi
+    else:
+        form = LocationForm()
+
+    return render(request, 'home/superuser/location_create.html', {'form': form, 'data': data, 'segment': 'locations'})
+
+    
+class LocationDeleteView(DeleteView):
+    model = Location
+    success_url = reverse_lazy('admin_locations')
+    template_name = 'main/location_confirm_delete.html'
 
