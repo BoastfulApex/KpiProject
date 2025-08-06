@@ -91,6 +91,10 @@
       }
     }
 
+    setTimeout(() => {
+      tg.close();
+        }, 2000);
+        
     function sendLocation(actionType) {
       if (navigator.geolocation) {
         showLoader(); // start loader (blue by default)
