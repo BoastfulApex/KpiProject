@@ -89,6 +89,11 @@
         resultIcon.textContent = "❌";
         resultIcon.style.color = "#e74c3c";
       }
+      
+    setTimeout(() => {
+      tg.close();
+        }, 3000);
+
     }
         
     function sendLocation(actionType) {
@@ -141,10 +146,6 @@
     document.getElementById("exitBtn").addEventListener("click", () => {
       sendLocation("exit");
     });
-
-    setTimeout(() => {
-      tg.close();
-        }, 5000);
 
 </script>
 </body>
