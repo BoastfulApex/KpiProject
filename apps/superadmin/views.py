@@ -220,7 +220,6 @@ def create_location_ajax(request):
             return JsonResponse({'success': False, 'errors': form.errors.as_text()})
     return JsonResponse({'success': False, 'errors': 'Noto‘g‘ri so‘rov'})
 
-
         
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut
