@@ -14,6 +14,9 @@ from django.shortcuts import get_object_or_404
 from datetime import timedelta, datetime
 import calendar
 from django.core.paginator import Paginator
+from django.db.models import Count
+import json
+
 
 
 def build_report(start_date, end_date, filial_id=None):
@@ -169,37 +172,120 @@ def build_report_for_employee(employee_id, start_date, end_date):
 
 
 def index(request):
+    # if not request.user.is_authenticated:
+    #     return redirect('/login/')
+    # data = {}
+    # filial = ''
+    # admin = None
+    # tashkent_time = timezone.localtime(timezone.now())
+    # if request.user.is_superuser:
+    #     filials = Filial.objects.all()
+    #     data['filials'] = filials
+    #     selected_filial_id = request.session.get('selected_filial_id', 'super_admin')
+    #     data['selected_filial_id'] = selected_filial_id
+    #     template = 'home/superuser/super_dashboard.html'
+    #     try:
+    #         filial = Filial.objects.get(id=int(selected_filial_id)).filial_name
+    #     except:
+    #         filial = ''
+    # elif not request.user.is_superuser:
+    #     template = 'home/user/staff_dashboard.html'
+    #     admin = Administrator.objects.get(user=request.user)
+    #     selected_filial_id = admin.filial.id
+    #     filial = admin.filial.filial_name
+    # else:
+    #     return redirect('/login/')
+
+    # today = timezone.now().date()
+    # start_date = today - timedelta(days=6)
+    # attendance_stats = (
+    #     Attendance.objects
+    #     .filter(date__range=[start_date, today], employee__filial_id=selected_filial_id)
+    #     .order_by('date')
+    # )
+
+    # labels = [item['date'].strftime('%d-%m') for item in attendance_stats]
+    # values = [item['total'] for item in attendance_stats]
+    # print(len(values))
+
+    # context = {
+    #     'segment': 'dashboard',
+    #     'data': data,
+    #     "filial": filial,
+    #     'tashkent_time': tashkent_time,
+    #     'chart_labels': json.dumps(labels),
+    #     'chart_values': json.dumps(values),
+    # }
+
+    # html_template = loader.get_template(template)
+    # return HttpResponse(html_template.render(context, request))
     if not request.user.is_authenticated:
         return redirect('/login/')
     data = {}
-    filial = ''
+    template = ''
     admin = None
     tashkent_time = timezone.localtime(timezone.now())
-    if request.user.is_superuser:
+    selected_filial_id = request.session.get('selected_filial_id')
+    if selected_filial_id:
         filials = Filial.objects.all()
         data['filials'] = filials
-        selected_filial_id = request.session.get('selected_filial_id', 'super_admin')
-        data['selected_filial_id'] = selected_filial_id
         template = 'home/superuser/super_dashboard.html'
+
+    elif not selected_filial_id:
         try:
-            filial = Filial.objects.get(id=int(selected_filial_id)).filial_name
-        except:
-            filial = ''
-    elif not request.user.is_superuser:
-        template = 'home/user/staff_dashboard.html'
-        admin = Administrator.objects.get(user=request.user)
-        filial = admin.filial.filial_name
-    else:
-        return redirect('/login/')
+            admin = Administrator.objects.get(user=request.user)
+            selected_filial_id = admin.filial.id
+            template = 'home/user/staff_dashboard.html'
+        except Administrator.DoesNotExist:
+            selected_filial_id = None
+
+    filial = Filial.objects.get(id=selected_filial_id) if selected_filial_id else None
+
+    today = timezone.localdate()
+    week_start = today - timedelta(days=6)
+
+    # 🔹 Bugungi kelgan xodimlar soni
+    todays_attendance_count = Attendance.objects.filter(
+        employee__filial=filial,
+        date=today
+    ).count()
+
+    # 🔹 Oxirgi haftada kechikishlar
+    # kechikish shartini o'z jadvaliga qarab aniqlaymiz
+    late_count = 0
+    early_leave_count = 0
+    total_attendance_count = 0
+
+    attendances = Attendance.objects.filter(
+        employee__filial=filial,
+        date__range=[week_start, today]
+    ).select_related('employee')
+
+    for att in attendances:
+        total_attendance_count += 1
+        schedule = WorkSchedule.objects.filter(employee=att.employee).first()
+        if schedule:
+            if att.check_in and att.check_in > schedule.start:  # kech kelgan
+                late_count += 1
+            if att.check_out and att.check_out < schedule.end:  # erta ketgan
+                early_leave_count += 1
+
+    late_percent = (late_count / total_attendance_count * 100) if total_attendance_count > 0 else 0
+    early_leave_percent = (early_leave_count / total_attendance_count * 100) if total_attendance_count > 0 else 0
+
     context = {
         'segment': 'dashboard',
         'data': data,
-        "filial": filial,
-        'tashkent_time': tashkent_time
+        "filial": filial.filial_name,
+        'tashkent_time': tashkent_time,
+        'todays_attendance_count': todays_attendance_count,
+        'late_percent': round(late_percent, 1),
+        'early_leave_percent': round(early_leave_percent, 1),
     }
-    
-    html_template = loader.get_template(template)
-    return HttpResponse(html_template.render(context, request))
+
+    return render(request, template, context)
+
+
 
 
 @login_required(login_url="/login/")
