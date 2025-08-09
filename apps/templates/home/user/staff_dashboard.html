@@ -18,37 +18,41 @@
 			<main class="content">
 				<div class="container-fluid p-0">
 
-					<h1 class="h3 mb-3"><strong></strong>Ro'yxati </h1>
-
+					<h1 class="h3 mb-3"><strong></strong> </h1>
 					<div class="row">
-						<canvas id="attendanceChart" width="400" height="200"></canvas>
 						<div class="col-xl-12 col-xxl-12 d-flex">
 							<div class="w-100">
-								<div class="row">
-									{% for cashback in cashbacks %}
-									<div class="col-sm-6">
-										<div class="card">
-											<div class="card-body">
-												<div class="row">
-													<div class="col mt-0">
-														<h5 class="card-title">{{cashback.name}}  {{cashback.persent}}%</h5>
-													</div>
-													<div class="col-auto">
-														<div class="stat text-primary">
-															<a href="{% url 'cashback_update' cashback.id %}"><i class="align-middle" data-feather="edit-3"></i></a>
-														</div>
-													</div>
-
-												</div>
-													<h1 class="mt-1 mb-3">{{cashback.summa}} UZS</h1>
-													<div class="stat text-primary">
-														<a href="{% url 'cashbacks_by_cashback' cashback.id %}"><i class="align-middle" data-feather="list"></i></a>
-													</div>
-											</div>
+							<div class="row">
+								<!-- Bugungi kelganlar -->
+								<div class="col-sm-4">
+									<div class="card">
+										<div class="card-body">
+											<h5 class="card-title">Bugungi kelganlar</h5>
+											<h1 class="mt-1 mb-3">{{ todays_attendance_count }}</h1>
 										</div>
 									</div>
-									{% endfor %}
 								</div>
+
+								<!-- Oxirgi haftada kechikishlar -->
+								<div class="col-sm-4">
+									<div class="card">
+										<div class="card-body">
+											<h5 class="card-title">Oxirgi haftada kechikishlar</h5>
+											<h1 class="mt-1 mb-3">{{ late_percent }}%</h1>
+										</div>
+									</div>
+								</div>
+
+								<!-- Oxirgi haftada erta ketganlar -->
+								<div class="col-sm-4">
+									<div class="card">
+										<div class="card-body">
+											<h5 class="card-title">Oxirgi haftada erta ketganlar</h5>
+											<h1 class="mt-1 mb-3">{{ early_leave_percent }}%</h1>
+										</div>
+									</div>
+								</div>
+							</div>
 							</div>
 						</div>
 					</div>
