@@ -294,6 +294,8 @@ def index(request):
     todays_attendance_count = 0
     early_leave_percent = 0
     late_percent = 0
+    late_count = 0
+    early_leave_count = 0
 
     tashkent_time = timezone.localtime(timezone.now())
     selected_filial_id = request.session.get('selected_filial_id', 'super_admin')
