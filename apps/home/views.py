@@ -1,5 +1,5 @@
 import datetime
-from django.db.models import Q
+from django.db.models import Q, OuterRef, Subquery, Count, Q, F
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseRedirect
 from django.template import loader
@@ -16,7 +16,7 @@ import calendar
 from django.core.paginator import Paginator
 from django.db.models import Count
 import json
-
+from django.db.models.functions import TruncMonth, ExtractWeekDay
 
 
 def build_report(start_date, end_date, filial_id=None):
@@ -296,6 +296,9 @@ def index(request):
     late_percent = 0
     late_count = 0
     early_leave_count = 0
+    chart_labels = []
+    late_values = []
+    early_values = []
 
     tashkent_time = timezone.localtime(timezone.now())
     selected_filial_id = request.session.get('selected_filial_id', 'super_admin')
@@ -319,6 +322,7 @@ def index(request):
     
     if selected_filial_id  != 'super_admin':
         today = timezone.localdate()
+        print('aaaaa')
         week_start = today - timedelta(days=6)
 
         # 🔹 Bugungi kelgan xodimlar soni
@@ -343,7 +347,47 @@ def index(request):
 
         late_percent = (late_count / total_attendance_count * 100) if total_attendance_count > 0 else 0
         early_leave_percent = (early_leave_count / total_attendance_count * 100) if total_attendance_count > 0 else 0
+
+        six_months_ago = timezone.localdate().replace(day=1) - timedelta(days=180)
+
+        # WorkSchedule dan xodim va haftaning kuni bo‘yicha mos start/end vaqtlarni olish
+        schedule_qs = WorkSchedule.objects.filter(
+            employee=OuterRef('employee'),
+            weekday__id=ExtractWeekDay(OuterRef('date'))  # haftaning kuni mos
+        )
+
+        monthly_data = (
+            Attendance.objects.filter(
+                employee__filial=filial,
+                date__gte=six_months_ago
+            )
+            .annotate(
+                schedule_start=Subquery(schedule_qs.values('start')[:1]),
+                schedule_end=Subquery(schedule_qs.values('end')[:1]),
+                month=TruncMonth('date')
+            )
+            .values('month')
+            .annotate(
+                total=Count('id'),
+                late_count=Count('id', filter=Q(check_in__gt=F('schedule_start'))),
+                early_count=Count('id', filter=Q(check_out__lt=F('schedule_end')))
+            )
+            .order_by('month')
+        )   
         
+        for entry in monthly_data:
+            month_name = entry['month'].strftime('%b %Y')
+            chart_labels.append(month_name)
+            if entry['total'] > 0:
+                late_percent_val = round(entry['late_count'] / entry['total'] * 100, 1)
+                early_percent_val = round(entry['early_count'] / entry['total'] * 100, 1)
+            else:
+                late_percent_val = early_percent_val = 0
+            late_values.append(late_percent_val)
+            early_values.append(early_percent_val)
+            
+        template = 'home/user/staff_dashboard.html'
+
     context = {
         'segment': 'dashboard',
         'data': data,
@@ -354,6 +398,9 @@ def index(request):
         'early_leave_percent': round(early_leave_percent, 1),
 
     }
+    context['chart_labels_json'] = json.dumps(chart_labels)
+    context['late_values_json'] = json.dumps(late_values)
+    context['early_values_json'] = json.dumps(early_values)
     
     html_template = loader.get_template(template)
     return HttpResponse(html_template.render(context, request))
