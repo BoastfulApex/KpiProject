@@ -348,7 +348,7 @@ def index(request):
         late_percent = (late_count / total_attendance_count * 100) if total_attendance_count > 0 else 0
         early_leave_percent = (early_leave_count / total_attendance_count * 100) if total_attendance_count > 0 else 0
 
-        six_months_ago = timezone.localdate().replace(day=1) - timedelta(days=180)
+        six_months_ago = timezone.localdate().replace(day=1) - timedelta(days=150)
 
         # WorkSchedule dan xodim va haftaning kuni bo‘yicha mos start/end vaqtlarni olish
         schedule_qs = WorkSchedule.objects.filter(
@@ -401,7 +401,7 @@ def index(request):
     context['chart_labels_json'] = json.dumps(chart_labels)
     context['late_values_json'] = json.dumps(late_values)
     context['early_values_json'] = json.dumps(early_values)
-    
+    print(context['late_values_json'])
     html_template = loader.get_template(template)
     return HttpResponse(html_template.render(context, request))
 

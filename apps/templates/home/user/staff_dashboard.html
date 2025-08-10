@@ -89,28 +89,43 @@
 {% block javascripts %}
 	<script src="{% static 'js/app.js' %}"></script>
 	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-
 	<script>
-		const ctx = document.getElementById('attendanceChart').getContext('2d');
-		const attendanceChart = new Chart(ctx, {
-			type: 'bar', // yoki 'line', 'pie'
-			data: {
-				labels: {{ chart_labels|safe }},
-				datasets: [{
-					label: 'Kundalik kelgan xodimlar soni',
-					data: {{ chart_values|safe }},
-					backgroundColor: 'rgba(75, 192, 192, 0.6)',
-					borderColor: 'rgba(75, 192, 192, 1)',
-					borderWidth: 1
-				}]
-			},
-			options: {
-				responsive: true,
-				scales: {
-					y: { beginAtZero: true }
-				}
-			}
-		});
+	const labels = {{ chart_labels_json|safe }};
+	const lateData = {{ late_values_json|safe }};
+	const earlyData = {{ early_values_json|safe }};
+
+	new Chart(document.getElementById('lateChart'), {
+		type: 'line',
+		data: {
+		labels: labels,
+		datasets: [{
+			label: 'Kechikish (%)',
+			data: lateData,
+			borderColor: 'rgba(255, 99, 132, 1)',
+			backgroundColor: 'rgba(255, 99, 132, 0.2)',
+			borderWidth: 2,
+			fill: true,
+			tension: 0.3
+		}]
+		},
+		options: { responsive: true, scales: { y: { beginAtZero: true, max: 100 } } }
+	});
+
+	new Chart(document.getElementById('earlyChart'), {
+		type: 'line',
+		data: {
+		labels: labels,
+		datasets: [{
+			label: 'Erta ketish (%)',
+			data: earlyData,
+			borderColor: 'rgba(54, 162, 235, 1)',
+			backgroundColor: 'rgba(54, 162, 235, 0.2)',
+			borderWidth: 2,
+			fill: true,
+			tension: 0.3
+		}]
+		},
+		options: { responsive: true, scales: { y: { beginAtZero: true, max: 100 } } }
+	});
 	</script>
 {% endblock javascripts %}
