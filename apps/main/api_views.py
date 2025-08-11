@@ -78,7 +78,7 @@ class SimpleCheckAPIView(generics.ListCreateAPIView):
 
         print(f"Masofa: {distance} metr")
 
-        if distance >= 50:
+        if distance >= 150:
             return Response({"status": "FAIL", "reason": "You are too far from the location."}, status=403)
 
         # ✅ 3. Userni olish
@@ -106,7 +106,7 @@ class SimpleCheckAPIView(generics.ListCreateAPIView):
                     f" Xodim: {employee.name}",
                     f" {' Keldi' if check_type == 'check_in' else 'Ketdi'} : {now_time.strftime('%H:%M')}",
                 ]
-                jadval = WorkSchedule.objects.filter(employee=employee, weekday=today.weekday()).first()
+                jadval = WorkSchedule.objects.filter(employee=employee, weekday__id=today.weekday()+1).first()
                 if jadval:
                     if check_type == 'check_in':
                         expected_time = jadval.start
