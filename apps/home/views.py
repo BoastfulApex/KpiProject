@@ -426,6 +426,7 @@ def employees(request):
         filial_id = administrator.filial.id
     employees = Employee.objects.filter(filial_id = filial_id)
     search_query = request.GET.get('q')
+    filial = Filial.objects.get(id=filial_id)
     if search_query:
         employees = employees.filter(Q(name__icontains=search_query))
     paginator = Paginator(employees, 50)
@@ -436,7 +437,7 @@ def employees(request):
     context = {
         'page_obj': page_obj,
         "segment": "employees",
-        "filial": employees.first().filial.filial_name,
+        "filial": filial.filial_name,
         'tashkent_time': tashkent_time,
         'data': data
     }
