@@ -38,7 +38,8 @@ class Employee(models.Model):
     user_id = models.IntegerField(null=True, blank=True, unique=True)
     filial = models.ForeignKey(Filial, on_delete=models.CASCADE, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    
+    check_number = models.IntegerField(null=True, default=0)
+
     class Meta:
         verbose_name = "Xodim"
         verbose_name_plural = "Xodimlar"
@@ -55,8 +56,6 @@ class Attendance(models.Model):
     date = models.DateField(default=timezone.now)
     check_in = models.TimeField(null=True, blank=True)
     check_out = models.TimeField(null=True, blank=True)
-    check_in_check = models.BooleanField(null=True, default=True)
-    check_number = models.IntegerField(null=True, default=0)
 
     class Meta:
         unique_together = ('employee', 'date')  # Har bir xodim uchun kuniga 1 ta yozuv
