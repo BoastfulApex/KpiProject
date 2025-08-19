@@ -153,7 +153,7 @@ class SimpleCheckAPIView(generics.ListCreateAPIView):
         
                 message_text = "\n".join(msg_lines)
                 
-                if attendance.check_type == 'check_in' and attendance.check_in_check or check_type == 'check_ut':
+                if check_type == 'check_in' and attendance.check_in_check or check_type == 'check_out':
                     send_telegram_message_to_admin(admin.telegram_id, message_text)
 
         return Response({
