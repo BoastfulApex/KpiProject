@@ -39,7 +39,6 @@ import os
 import django
 from aiogram import Bot, Dispatcher, enums
 import logging
-# from send_keyboard import customer
 from data import config
 import asyncio
 
@@ -84,7 +83,6 @@ async def main():
         await dp.start_polling(bot)
     finally:
         await on_shutdown(bot, dp)
-
 
 if __name__ == '__main__':
     asyncio.run(main())

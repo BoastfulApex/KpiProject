@@ -297,3 +297,16 @@ async def back_to_start(callback: CallbackQuery, state: FSMContext):
         reply_markup=keyboard
     )
     await callback.answer()
+
+
+@router.channel_post(F.text.in_(['SendPostNotification']))
+async def send_report(message: types.Message):
+    for filial in Filial.objects.all():
+        report = await get_daily_report(filial)
+        admins = Administrator.objects.filter(filial=filial).all()
+        for admin in admins:
+            if admin.telegram_id:
+                await bot.send_message(
+                    chat_id=admin.telegram_id,
+                    text=f"📊 {filial.filial_name} uchun kunlik hisobot:\n\n{report}"
+                )

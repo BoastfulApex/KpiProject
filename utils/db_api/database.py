@@ -3,6 +3,8 @@ from typing import List, Any
 from asgiref.sync import sync_to_async
 from apps.main.models import *
 from apps.superadmin.models import *
+from django.db.models import F, ExpressionWrapper, DurationField
+from datetime import timedelta
 
 
 @sync_to_async
@@ -197,6 +199,36 @@ def get_employee_schedule_text(employee_id: int) -> str:
         print(f"Xatolik: {e}")
         return "⚠️ Ish jadvali topilmadi yoki xato yuz berdi."
 
+@sync_to_async
+def get_daily_report(filial):
+    today = datetime.today().date()  # faqat sana
+
+    records = (
+        Attendance.objects.filter(employee__filial_id=filial.id, date=today)
+        .annotate(
+            worked_hours=ExpressionWrapper(
+                F("check_out") - F("check_in"),
+                output_field=DurationField()
+            )
+        )
+        .select_related("employee")
+    )
+
+    lines = []
+    for rec in records:
+        worked = rec.worked_hours or timedelta()
+        hours, remainder = divmod(int(worked.total_seconds()), 3600)
+        minutes, _ = divmod(remainder, 60)
+
+        lines.append(
+            f"👤 {rec.employee.name}\n"
+            f" ⏰ Keldi: {rec.check_in.strftime('%H:%M') if rec.check_in else '-'}\n"
+            f" 🚪 Ketdi: {rec.check_out.strftime('%H:%M') if rec.check_out else '-'}\n"
+            f" ⌛ Ishlagan: {hours:02d}:{minutes:02d}"
+        )
+    if not lines:
+        return "Bugun hech kim kelmadi."
+    return "\n\n".join(lines)
 
 # @sync_to_async
 # def generate_attendance_excel_file(start_date, end_date, file_name="hisobot.xlsx"):
