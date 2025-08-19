@@ -76,7 +76,7 @@ class SimpleCheckAPIView(generics.ListCreateAPIView):
             lon2=location.longitude
         )
 
-        print(f"Masofa: {distance} metr")
+        # print(f"Masofa: {distance} metr")
 
         if distance >= 150:
             return Response({"status": "FAIL", "reason": "You are too far from the location."}, status=403)
@@ -86,6 +86,7 @@ class SimpleCheckAPIView(generics.ListCreateAPIView):
         today = timezone.localdate()
         now_time = timezone.localtime().time()
         # 🕒 4. Attendance ni yaratish yoki olish
+        oldin_kelgan = True
         attendance, created = Attendance.objects.get_or_create(
             employee=employee,
             date=today
@@ -94,8 +95,25 @@ class SimpleCheckAPIView(generics.ListCreateAPIView):
         if check_type == 'check_in':
             if not attendance.check_in:
                 attendance.check_in = now_time
+                attendance.check_in_check = True
         elif check_type == 'check_out':
             attendance.check_out = now_time
+            if attendance.check_in and attendance.check_out:
+                start = attendance.check_in.strftime("%H:%M")
+                end = attendance.check_out.strftime("%H:%M")
+                worked = (datetime.combine(today, attendance.check_out) -
+                        datetime.combine(today, attendance.check_in))
+                hours, remainder = divmod(int(worked.total_seconds()), 3600)
+                minutes, _ = divmod(remainder, 60)
+
+                msg = (
+                    f"👤 Hodim: {employee.name}\n"
+                    f"📅 Sana: {today}\n"
+                    f"⏰ Kirish: {start}\n"
+                    f"🚪 Chiqish: {end}\n"
+                    f"⌛ Ish vaqt: {hours:02d}:{minutes:02d}"
+                )
+                send_telegram_message_to_admin(employee.user_id, msg)
 
         attendance.save()
         
@@ -135,7 +153,8 @@ class SimpleCheckAPIView(generics.ListCreateAPIView):
         
                 message_text = "\n".join(msg_lines)
                 
-                send_telegram_message_to_admin(admin.telegram_id, message_text)
+                if attendance.check_type == 'check_in' and attendance.check_in_check or check_type == 'check_ut':
+                    send_telegram_message_to_admin(admin.telegram_id, message_text)
 
         return Response({
             "status": "SUCCESS",

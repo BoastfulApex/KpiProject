@@ -55,6 +55,7 @@ class Attendance(models.Model):
     date = models.DateField(default=timezone.now)
     check_in = models.TimeField(null=True, blank=True)
     check_out = models.TimeField(null=True, blank=True)
+    check_in_check = models.BooleanField(null=True, default=True)
 
     class Meta:
         unique_together = ('employee', 'date')  # Har bir xodim uchun kuniga 1 ta yozuv
