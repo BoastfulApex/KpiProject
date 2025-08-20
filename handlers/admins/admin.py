@@ -306,7 +306,10 @@ async def send_report(message: types.Message):
         admins = Administrator.objects.filter(filial=filial).all()
         for admin in admins:
             if admin.telegram_id:
-                await bot.send_message(
-                    chat_id=admin.telegram_id,
-                    text=f"📊 {filial.filial_name} uchun kunlik hisobot:\n\n{report}"
-                )
+                try:
+                    await bot.send_message(
+                        chat_id=admin.telegram_id,
+                        text=f"📊 {filial.filial_name} uchun kunlik hisobot:\n\n{report}"
+                    )
+                except:
+                    pass
