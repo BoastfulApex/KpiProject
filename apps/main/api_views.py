@@ -8,7 +8,8 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 from data import config
 import requests
-
+from django.shortcuts import get_object_or_404
+ 
 
 BOT_TOKEN = config.BOT_TOKEN
 
@@ -55,109 +56,85 @@ class SimpleCheckAPIView(generics.ListCreateAPIView):
         data = serializer.validated_data
         user_id = data['user_id']
         check_type = data['type']
-        latitude = data['latitude']
-        longitude = data['longitude']
+        latitude, longitude = data['latitude'], data['longitude']
 
-        try:
-            employee = Employee.objects.get(user_id=user_id)
-        except Employee.DoesNotExist:
-            return Response({"status": "FAIL", "reason": "User not found"}, status=404)
+        # 🔍 Employee olish
+        employee = get_object_or_404(Employee, user_id=user_id)
 
-        # 🔍 1. Location tekshirish
+        # 🔍 Location tekshirish
         location = Location.objects.filter(filial=employee.filial).first()
         if not location:
             return Response({"status": "FAIL", "reason": "Location not set"}, status=400)
 
-        # 📏 2. Masofa hisoblash
-        distance = get_distance_meters(
-            lat1=latitude,
-            lon1=longitude,
-            lat2=location.latitude,
-            lon2=location.longitude
-        )
-
-        # print(f"Masofa: {distance} metr")
-
+        # 📏 Masofa hisoblash
+        distance = get_distance_meters(latitude, longitude, location.latitude, location.longitude)
         if distance >= 150:
             return Response({"status": "FAIL", "reason": "You are too far from the location."}, status=403)
 
-        # ✅ 3. Userni olish
-
+        # 🕒 Bugungi sana/vaqt
         today = timezone.localdate()
         now_time = timezone.localtime().time()
-        # 🕒 4. Attendance ni yaratish yoki olish
-        oldin_kelgan = True
-        attendance, created = Attendance.objects.get_or_create(
-            employee=employee,
-            date=today
-        )
+
+        # 🗂 Attendance yaratish yoki olish
+        attendance, _ = Attendance.objects.get_or_create(employee=employee, date=today)
 
         if check_type == 'check_in':
-                attendance.check_number += 1
-                if not attendance.check_in:
-                    attendance.check_in = now_time
+            attendance.check_number += 1
+            attendance.check_in = attendance.check_in or now_time
         elif check_type == 'check_out':
             attendance.check_out = now_time
-            if attendance.check_in and attendance.check_out:
-                start = attendance.check_in.strftime("%H:%M")
-                end = attendance.check_out.strftime("%H:%M")
-                worked = (datetime.combine(today, attendance.check_out) -
-                        datetime.combine(today, attendance.check_in))
+            if attendance.check_in:
+                worked = datetime.combine(today, attendance.check_out) - datetime.combine(today, attendance.check_in)
                 hours, remainder = divmod(int(worked.total_seconds()), 3600)
                 minutes, _ = divmod(remainder, 60)
-
                 msg = (
                     f"👤 Hodim: {employee.name}\n"
                     f"📅 Sana: {today}\n"
-                    f"⏰ Kirish: {start}\n"
-                    f"🚪 Chiqish: {end}\n"
+                    f"⏰ Kirish: {attendance.check_in.strftime('%H:%M')}\n"
+                    f"🚪 Chiqish: {attendance.check_out.strftime('%H:%M')}\n"
                     f"⌛ Ish vaqt: {hours:02d}:{minutes:02d}"
                 )
                 send_telegram_message_to_admin(employee.user_id, msg)
 
         attendance.save()
-        
-        admins = Administrator.objects.filter(filial=employee.filial).all()
+
+        # 📩 Adminlarga xabar yuborish
+        def build_schedule_message(jadval, check_type, now_time):
+            if not jadval:
+                return None
+
+            expected_time = jadval.start if check_type == 'check_in' else jadval.end
+            delta_sec = get_time_difference(expected_time, now_time)
+            min_diff = abs(delta_sec) // 60
+
+            if delta_sec == 0:
+                return " O‘z vaqtida keldi" if check_type == 'check_in' else " O‘z vaqtida ketdi"
+            if check_type == 'check_in':
+                return f" Kechikdi: {min_diff} daqiqa" if delta_sec > 0 else f" Erta keldi: {min_diff} daqiqa"
+            else:
+                return f" Erta ketdi: {min_diff} daqiqa" if delta_sec < 0 else f" Kech ketdi: {min_diff} daqiqa"
+
+        admins = Administrator.objects.filter(filial=employee.filial)
+        jadval = WorkSchedule.objects.filter(employee=employee, weekday__id=today.weekday()+1).first()
+
+        status_text = build_schedule_message(jadval, check_type, now_time)
+
         for admin in admins:
-            if admin and admin.telegram_id:
-                msg_lines = [
-                    f" Xodim: {employee.name}",
-                    f" {' Keldi' if check_type == 'check_in' else 'Ketdi'} : {now_time.strftime('%H:%M')}",
-                ]
-                jadval = WorkSchedule.objects.filter(employee=employee, weekday__id=today.weekday()+1).first()
-                if jadval:
-                    if check_type == 'check_in':
-                        expected_time = jadval.start
-                        delta_sec = get_time_difference(expected_time, now_time)
-                        min_diff = abs(delta_sec) // 60
+            if not admin.telegram_id:
+                continue
+            msg_lines = [
+                f" Xodim: {employee.name}",
+                f" {' Keldi' if check_type == 'check_in' else 'Ketdi'} : {now_time.strftime('%H:%M')}",
+            ]
+            if status_text:
+                msg_lines.append(status_text)
+            msg_lines.append(f" Sana: {today.strftime('%Y-%m-%d')}")
 
-                        if delta_sec > 0:
-                            msg_lines.append(f" Kechikdi: {min_diff} daqiqa")
-                        elif delta_sec < 0:
-                            msg_lines.append(f" Erta keldi: {min_diff} daqiqa")
-                        else:
-                            msg_lines.append(" O‘z vaqtida keldi")
-                    
-                    elif check_type == 'check_out':
-                        expected_time = jadval.end
-                        delta_sec = get_time_difference(expected_time, now_time)
-                        min_diff = abs(delta_sec) // 60
-
-                        if delta_sec < 0:
-                            msg_lines.append(f" Erta ketdi: {min_diff} daqiqa")
-                        elif delta_sec > 0:
-                            msg_lines.append(f" Kech ketdi: {min_diff} daqiqa")
-                        else:
-                            msg_lines.append(" O‘z vaqtida ketdi")        
-                msg_lines.append(f" Sana: {today.strftime('%Y-%m-%d')}",)
-        
-                message_text = "\n".join(msg_lines)
-                
-                if check_type == 'check_in': 
-                    if attendance.check_number == 1:
-                        send_telegram_message_to_admin(admin.telegram_id, message_text)
-                else:
-                    send_telegram_message_to_admin(admin.telegram_id, message_text)
+            if check_type == 'check_in':
+                if attendance.check_number == 1:
+                    send_telegram_message_to_admin(admin.telegram_id, "\n".join(msg_lines))
+            else:
+                send_telegram_message_to_admin(admin.telegram_id, "\n".join(msg_lines))
 
         return Response({
             "status": "SUCCESS",
