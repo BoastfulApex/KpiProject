@@ -93,12 +93,10 @@ class SimpleCheckAPIView(generics.ListCreateAPIView):
         )
 
         if check_type == 'check_in':
-                employee.check_number += 1
-                employee.save()
+                attendance.check_number += 1
                 if not attendance.check_in:
                     attendance.check_in = now_time
         elif check_type == 'check_out':
-            employee.check_in_check = False
             attendance.check_out = now_time
             if attendance.check_in and attendance.check_out:
                 start = attendance.check_in.strftime("%H:%M")
@@ -156,7 +154,7 @@ class SimpleCheckAPIView(generics.ListCreateAPIView):
                 message_text = "\n".join(msg_lines)
                 
                 if check_type == 'check_in': 
-                    if employee.check_number == 1:
+                    if attendance.check_number == 1:
                         send_telegram_message_to_admin(admin.telegram_id, message_text)
                 else:
                     send_telegram_message_to_admin(admin.telegram_id, message_text)
