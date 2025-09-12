@@ -36,23 +36,26 @@
                     </div>
                     <div class="card-body">
                         <form role="form" method="post" action="" enctype="multipart/form-data">
-
                             {% csrf_token %}
 
-                            <div class="form-group">
-                                <label for="inputName">Ismi</label>
-                                {{ form.name}}
+                            <div class="form-group mb-3">
+                                <label for="id_name">Ismi</label>
+                                {{ form.name }}
                             </div>
-                            <br>
-                            <div class="form-group">
-                                <label for="inputName">TelegramID</label>
-                                {{ form.user_id}}
+
+                            <div class="form-group mb-3">
+                                <label for="id_user_id">Telegram ID</label>
+                                {{ form.user_id }}
                             </div>
-                            <br>
-                            <div class="row">
-                                <div class="col-12">
-                                    <input type="submit" class="btn btn-success float-right" value="Qo'shish">
-                                </div>
+
+                            <div class="form-group mb-3">
+                                <label for="id_image">Rasm (ixtiyoriy)</label><br>
+                                {{ form.image }}
+                            </div>
+
+                            <div class="d-flex justify-content-end mt-4">
+                                <button type="submit" class="btn btn-success">Qo'shish</button>
+                                <a href="{% url 'employees' %}" class="btn btn-secondary ms-2">Bekor qilish</a>
                             </div>
                         </form>
                     </div>

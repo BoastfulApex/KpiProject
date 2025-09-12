@@ -38,10 +38,20 @@ class Employee(models.Model):
     user_id = models.IntegerField(null=True, blank=True, unique=True)
     filial = models.ForeignKey(Filial, on_delete=models.CASCADE, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    
+    image = models.ImageField(null=True)
 
     class Meta:
         verbose_name = "Xodim"
         verbose_name_plural = "Xodimlar"
+        
+    @property
+    def imageURL(self):
+        try:
+            url = self.image.url
+        except:
+            url = ''
+        return url
 
     def __str__(self):
         return self.name if self.name else "Unnamed Employee"

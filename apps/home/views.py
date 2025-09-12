@@ -466,9 +466,11 @@ def employee_create(request):
     if request.method == 'POST':
         form = EmployeeForm(request.POST, request.FILES)
         if form.is_valid():
-            employee = form.save()
+            employee = form.save(commit=False)
             # return redirect('employees')
             employee.filial = filial
+            if 'image' in request.FILES:
+                employee.image = request.FILES['image']
             employee.save()          
             return redirect(reverse('create_schedule_for_employee', args=[employee.id]))    
     else:
@@ -505,8 +507,11 @@ def employee_detail(request, pk):
     if request.method == 'POST':
         form = EmployeeForm(request.POST, request.FILES, instance=employee)
         if form.is_valid():
-            form.save() 
-            return redirect('employees')
+            employee = form.save(commit=False)  # instance olamiz
+            if 'image' in request.FILES:
+                employee.image = request.FILES['image']  # faylni biriktiramiz
+            employee.save()
+        return redirect('employees')
     else:
         form = EmployeeForm(instance=employee)
 

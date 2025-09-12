@@ -13,34 +13,48 @@
 {% endblock stylesheets %}
 
 {% block content %}
+<main class="content">
+    <div class="container-fluid p-0">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Xodim qo'shish / tahrirlash</h5>
+            </div>
+            <div class="card-body">
+                <form role="form" method="post" action="" enctype="multipart/form-data">
+                    {% csrf_token %}
 
-			<main class="content">
-				<div class="container-fluid p-0">
-					<div class="card-body">
-						<form role="form" method="post" action="" enctype="multipart/form-data">
+                    <div class="form-group mb-3">
+                        <label for="id_name">Xodim ismi</label>
+                        {{ form.name }}
+                    </div>
 
-							{% csrf_token %}
+                    <div class="form-group mb-3">
+                        <label for="id_user_id">Telegram ID</label>
+                        {{ form.user_id }}
+                    </div>
 
-							<div class="form-group">
-							  	<label for="inputName">Xodim Ismi</label>
-								{{ form.name }}
-							</div>
-							<br>
-							<div class="form-group">
-								<label > TelegramID</label>
-								{{ form.user_id }}
-							</div>
-							<br>
-							<br>
-							<div class="row">
-								<div class="col-12">
-									<input type="submit" class="btn btn-success float-right" value="Saqlash">
-								</div>
-							</div>
-						</form>
-					</div>
-				</div>
-            </main>
+                    <div class="form-group mb-3">
+                        <label for="id_image">Rasm (ixtiyoriy)</label><br>
+                        {{ form.image }}
+
+                        {# Agar mavjud bo‘lsa eski rasmni ko‘rsatamiz #}
+                        {% if form.instance.image %}
+                            <div class="mt-2">
+                                <img src="{{ form.instance.image.url }}" alt="Xodim rasmi"
+                                     class="rounded" width="120" height="120">
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex justify-content-end mt-4">
+                        <button type="submit" class="btn btn-success"> Saqlash</button>
+                        <a href="{% url 'employees' %}" class="btn btn-secondary ms-2">Bekor qilish</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</main>
 {% endblock content %}
 
 {% block javascripts %}

@@ -41,7 +41,14 @@ class EmployeeForm(forms.ModelForm):
                 "class": "form-control",
             }
         ))
-
+    image = forms.ImageField(
+        required=False,
+        widget=forms.ClearableFileInput(
+            attrs={
+                "class": "form-control",
+            }
+        )
+    )
     class Meta:
         model = Employee
         fields = ['name', 'user_id']

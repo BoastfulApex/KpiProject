@@ -50,7 +50,17 @@
 									<tbody>
 									{% for employee in page_obj %}
 										<tr>
-											<td class="d-none d-xl-table-cell">{{ employee.name }}</td>
+											<td class="d-none d-xl-table-cell">
+												{% if employee.image %}
+													<img src="{{ employee.image.url }}" alt="{{ employee.name }}"
+													class="rounded-circle me-2" width="40" height="40">
+												{% else %}
+													<img src="https://cdn.pixabay.com/photo/2023/02/18/11/00/icon-7797704_640.png" alt="No Image"
+													class="rounded-circle me-2" width="40" height="40">
+													{% endif %}
+												{{ employee.name }}
+
+											</td>
 											<td class="d-none d-xl-table-cell">{{ employee.user_id }}</td>
 											<td class="d-none d-md-table-cell">
 
