@@ -9,7 +9,76 @@ from datetime import datetime, timedelta
 from data import config
 import requests
 from django.shortcuts import get_object_or_404
- 
+import face_recognition
+import numpy as np
+import base64, io, os
+from PIL import Image
+from django.conf import settings
+
+
+from django.core.files.base import ContentFile
+
+def save_uploaded_image(base64_image, filename="debug_uploaded.jpg"):
+    """Debug uchun kelgan base64 rasmni MEDIA_ROOT ichida saqlab qo‘yadi"""
+    header, data = base64_image.split(",", 1)
+    decoded = base64.b64decode(data)
+
+    save_path = os.path.join(settings.MEDIA_ROOT, filename)
+    with open(save_path, "wb") as f:
+        f.write(decoded)
+
+    return save_path
+
+
+def get_distance_meters(lat1, lon1, lat2, lon2):
+    from geopy.distance import geodesic
+    return geodesic((lat1, lon1), (lat2, lon2)).meters
+
+
+def verify_face(employee, base64_image):
+    print("verify_face called")
+
+    # ❗ Debug uchun
+    # debug_path = save_uploaded_image(base64_image, "last_uploaded.jpg")
+    # print("Uploaded image saved to:", debug_path)
+
+    if not employee.image:
+        return False, "Employee image not found"
+
+    # 1. Xodim rasmi
+    known_image = face_recognition.load_image_file(employee.image.path)
+    known_encodings = face_recognition.face_encodings(known_image)
+    if not known_encodings:
+        return False, "No face found in employee image"
+    known_encoding = known_encodings[0]
+
+    # 2. Kelgan rasmni numpy array qilib ochish
+    header, data = base64_image.split(",", 1)
+    decoded = base64.b64decode(data)
+
+    import numpy as np, cv2
+    
+    file_bytes = np.frombuffer(decoded, np.uint8)
+    unknown_image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+
+    if unknown_image is None:
+        return False, "Uploaded image decode error"
+
+    # 🔄 BGR → RGB
+    unknown_image = cv2.cvtColor(unknown_image, cv2.COLOR_BGR2RGB)
+
+    # 3. Face encoding qilish
+    unknown_encodings = face_recognition.face_encodings(unknown_image)
+    if not unknown_encodings:
+        return False, "No face found in uploaded image"
+
+    unknown_encoding = unknown_encodings[0]
+
+    # 4. Taqqoslash
+    results = face_recognition.compare_faces([known_encoding], unknown_encoding, tolerance=0.5)
+
+    return bool(results[0])
+
 
 BOT_TOKEN = config.BOT_TOKEN
 
@@ -34,11 +103,27 @@ def get_distance_meters(lat1, lon1, lat2, lon2):
     return geodesic((lat1, lon1), (lat2, lon2)).meters
 
 
+# class CheckRequestSerializer(serializers.Serializer):
+#     user_id = serializers.IntegerField()
+#     type = serializers.ChoiceField(choices=['check_in', 'check_out'])
+#     latitude = serializers.FloatField()
+#     longitude = serializers.FloatField()
+
+
 class CheckRequestSerializer(serializers.Serializer):
     user_id = serializers.IntegerField()
     type = serializers.ChoiceField(choices=['check_in', 'check_out'])
     latitude = serializers.FloatField()
     longitude = serializers.FloatField()
+    image = serializers.CharField()  # base64 encoded
+
+    def validate(self, attrs):
+        # Barcha maydonlar majburiy
+        if not attrs.get("latitude") or not attrs.get("longitude"):
+            raise serializers.ValidationError("Latitude va longitude majburiy.")
+        if not attrs.get("image"):
+            raise serializers.ValidationError("Image majburiy.")
+        return attrs
 
 
 class SimpleCheckAPIView(generics.ListCreateAPIView):
@@ -49,27 +134,36 @@ class SimpleCheckAPIView(generics.ListCreateAPIView):
         return []
 
     def create(self, request):
-        serializer = CheckRequestSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
-
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
+
         user_id = data['user_id']
         check_type = data['type']
-        latitude, longitude = data['latitude'], data['longitude']
+        latitude = data['latitude']
+        longitude = data['longitude']
+        image_base64 = data['image']
 
         # 🔍 Employee olish
-        employee = get_object_or_404(Employee, user_id=user_id)
+        try:
+            employee = Employee.objects.get(user_id=user_id)
+        except Employee.DoesNotExist:
+            return Response({"status": "FAIL", "reason": "Foydalanuvchi topilmadi"}, status=404)
 
         # 🔍 Location tekshirish
         location = Location.objects.filter(filial=employee.filial).first()
         if not location:
-            return Response({"status": "FAIL", "reason": "Location not set"}, status=400)
+            return Response({"status": "FAIL", "reason": "Filial manzili tasdiqlanmagan"}, status=400)
+
+        if employee.image:
+            cf = verify_face(employee, image_base64)
+            if cf is not True:
+                return Response({"status": "FAIL", "reason": "FaceID Mos kelmadi"}, status=403)
 
         # 📏 Masofa hisoblash
         distance = get_distance_meters(latitude, longitude, location.latitude, location.longitude)
         if distance >= 150:
-            return Response({"status": "FAIL", "reason": "You are too far from the location."}, status=403)
+            return Response({"status": "FAIL", "reason": "Siz manzildan uzoqdasiz."}, status=403)
 
         # 🕒 Bugungi sana/vaqt
         today = timezone.localdate()
