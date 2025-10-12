@@ -52,3 +52,29 @@ async def get_filial_selection_keyboard() -> InlineKeyboardMarkup:
         ]
     )
     return keyboard
+async def get_organization_selection_keyboard():
+    orgs = await get_organizations()
+    if not orgs:
+        return InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="❌ Hozircha tashkilotlar yo‘q", callback_data="none")]
+        ])
+
+    buttons = [
+        [InlineKeyboardButton(text=o["name"], callback_data=f"org_{o['id']}")]
+        for o in orgs
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+async def get_filial_selection_keyboard_by_org(org_id):
+    filials = await get_filials_by_org(org_id)
+    if not filials:
+        return InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="❌ Bu tashkilotda filial topilmadi", callback_data="none")]
+        ])
+
+    buttons = [
+        [InlineKeyboardButton(text=f["filial_name"], callback_data=f"filial_{f['id']}")]
+        for f in filials
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=buttons)

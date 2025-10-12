@@ -345,3 +345,33 @@ def generate_attendance_excel_file(user_id, start_date, end_date, file_name="his
     df.to_excel(full_path, index=False)
     print(full_path)
     return full_path
+
+async def get_organizations():
+    from apps.superadmin.models import Organization
+    return list(Organization.objects.all().values("id", "name"))
+
+# utils/db_api/database.py
+
+async def get_organizations():
+    from apps.superadmin.models import Organization
+    return list(Organization.objects.all().values("id", "name"))
+
+async def get_filials_by_org(org_id):
+    from apps.superadmin.models import Filial
+    return list(Filial.objects.filter(organization_id=org_id).values("id", "filial_name"))
+
+async def set_user_organization(user_id: int, org_id: int):
+    from apps.superadmin.models import Organization
+    org = await sync_to_async(Organization.objects.get)(id=org_id)
+    user = await get_telegram_user(user_id)
+    if user:
+        user.organization = org
+        await sync_to_async(user.save)()
+
+async def set_user_filial(user_id: int, filial_id: int):
+    from apps.superadmin.models import Filial
+    filial = await sync_to_async(Filial.objects.get)(id=filial_id)
+    user = await get_telegram_user(user_id)
+    if user:
+        user.filial = filial
+        await sync_to_async(user.save)()

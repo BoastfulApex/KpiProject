@@ -16,7 +16,6 @@ dp.include_router(router)
 
 channel_id = config.CHANNEL_ID
 
-
 @router.message(CommandStart(), StateFilter(None))
 async def handler(message: Message, command: CommandStart):
     user = message.from_user
@@ -28,7 +27,6 @@ async def handler(message: Message, command: CommandStart):
             first_name=user.first_name or "",
             last_name=user.last_name or ""
         )
-
     check = await is_user_employee(message.from_user.id)
     check_admin = await is_user_admin(message.from_user.id)
     if check_admin:
@@ -56,17 +54,74 @@ async def handler(message: Message, command: CommandStart):
         await message.answer("Administratorga xabar yubormoqchimisiz?", reply_markup=keyboard)
         
 
+# @router.callback_query(lambda c: c.data == "notify_admin")
+# async def notify_admin_callback(callback_query: CallbackQuery):
+#     keyboard = await get_filial_selection_keyboard()
+
+#     await callback_query.message.edit_text(
+#         "📍 Qaysi filialga murojaat yubormoqchisiz?",
+#         reply_markup=keyboard
+#     )
+#     await callback_query.answer()
+
+
+# @router.callback_query(lambda c: c.data.startswith("filial_"))
+# async def send_to_filial_admin(callback_query: CallbackQuery):
+#     filial_id = int(callback_query.data.split("_")[1])
+#     user = callback_query.from_user
+
+#     admins = await get_admins_by_filial(filial_id)
+
+#     if not admins:
+#         await callback_query.message.edit_text("❌ Afsuski, bu filialda administrator topilmadi.")
+#         return
+
+#     for admin in admins:
+#         keyboard = get_user_approval_keyboard(user.id)
+
+#         await callback_query.bot.send_message(
+#             chat_id=admin.telegram_id,
+#             text=(
+#                 f"🚨 Yangi foydalanuvchi botga kirishga harakat qildi:\n\n"
+#                 f"👤 Ismi: {user.full_name}\n"
+#                 f"🆔 Telegram ID: {user.id}\n"
+#                 f"🏢 Filial: {admin.filial.filial_name}\n"
+#                 f"📩 U administratorga murojaat yuborishni tanladi."
+#             ),
+#             reply_markup=keyboard
+#         )
+
+#     await callback_query.message.edit_text("✅ Tanlangan filial administratoriga xabaringiz yuborildi.")
+#     await callback_query.answer()
+
+
 @router.callback_query(lambda c: c.data == "notify_admin")
 async def notify_admin_callback(callback_query: CallbackQuery):
-    keyboard = await get_filial_selection_keyboard()
+    # 1️⃣ Tashkilotlar ro‘yxatini chiqaramiz
+    keyboard = await get_organization_selection_keyboard()
 
     await callback_query.message.edit_text(
-        "📍 Qaysi filialga murojaat yubormoqchisiz?",
+        "🏢 Qaysi tashkilotga murojaat yubormoqchisiz?",
         reply_markup=keyboard
     )
     await callback_query.answer()
 
 
+# 2️⃣ Tashkilot tanlanganida — filiallar ro‘yxatini chiqaramiz
+@router.callback_query(lambda c: c.data.startswith("org_"))
+async def select_filial_after_org(callback_query: CallbackQuery):
+    org_id = int(callback_query.data.split("_")[1])
+
+    keyboard = await get_filial_selection_keyboard_by_org(org_id)
+
+    await callback_query.message.edit_text(
+        "📍 Endi shu tashkilotdagi filialni tanlang:",
+        reply_markup=keyboard
+    )
+    await callback_query.answer()
+
+
+# 3️⃣ Filial tanlanganda — administratorlarga xabar yuboramiz
 @router.callback_query(lambda c: c.data.startswith("filial_"))
 async def send_to_filial_admin(callback_query: CallbackQuery):
     filial_id = int(callback_query.data.split("_")[1])
@@ -93,5 +148,7 @@ async def send_to_filial_admin(callback_query: CallbackQuery):
             reply_markup=keyboard
         )
 
-    await callback_query.message.edit_text("✅ Tanlangan filial administratoriga xabaringiz yuborildi.")
+    await callback_query.message.edit_text(
+        "✅ Tanlangan filial administratoriga xabaringiz yuborildi."
+    )
     await callback_query.answer()
