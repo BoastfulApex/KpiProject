@@ -50,7 +50,7 @@ class AdminUserForm(forms.ModelForm):
     )
 
     filial = forms.ModelChoiceField(
-        queryset=Filial.objects.all(),
+        queryset=Filial.objects.none(),
         label="Filial",
         widget=forms.Select(attrs={
             "class": "form-control"
@@ -60,6 +60,17 @@ class AdminUserForm(forms.ModelForm):
     class Meta:
         model = Administrator
         fields = ['telegram_id', 'full_name', 'filial']
+
+    def __init__(self, *args, **kwargs):
+        admin_user = kwargs.pop('admin_user', None)
+        super().__init__(*args, **kwargs)
+
+        if admin_user and hasattr(admin_user, 'organization'):
+            self.fields['filial'].queryset = Filial.objects.filter(
+                organization=admin_user.organization
+            )
+        else:
+            self.fields['filial'].queryset = Filial.objects.none()
 
     def save(self, commit=True):
         # Mavjud instance bormi va unga biriktirilgan user bormi?

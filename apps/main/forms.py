@@ -122,7 +122,7 @@ class AttendanceDateRangeForm(forms.Form):
 
 class LocationForm(forms.ModelForm):
     filial = forms.ModelChoiceField(
-        queryset=Filial.objects.all(),
+        queryset=Filial.objects.none(),
         widget=forms.Select(attrs={"class": "form-control"}),
         required=False,
     )
@@ -140,6 +140,17 @@ class LocationForm(forms.ModelForm):
     class Meta:
         model = Location
         fields = ['filial', 'latitude', 'longitude']
+
+    def __init__(self, *args, **kwargs):
+        admin_user = kwargs.pop('admin_user', None)
+        super().__init__(*args, **kwargs)
+
+        if admin_user and hasattr(admin_user, 'organization'):
+            self.fields['filial'].queryset = Filial.objects.filter(
+                organization=admin_user.organization
+            )
+        else:
+            self.fields['filial'].queryset = Filial.objects.none()
 
 
 # class CategoryForm(forms.ModelForm):

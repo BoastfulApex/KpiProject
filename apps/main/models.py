@@ -24,6 +24,8 @@ class Location(models.Model):
     address = models.CharField(max_length=200, null=True, blank=True)
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, null=True, blank=True)
+    
 
     def __str__(self):
         return self.name if self.name else "Unnamed Location"

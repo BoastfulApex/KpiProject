@@ -172,120 +172,13 @@ def build_report_for_employee(employee_id, start_date, end_date):
 
 
 def index(request):
-    # if not request.user.is_authenticated:
-    #     return redirect('/login/')
-    # data = {}
-    # filial = ''
-    # admin = None
-    # tashkent_time = timezone.localtime(timezone.now())
-    # if request.user.is_superuser:
-    #     filials = Filial.objects.all()
-    #     data['filials'] = filials
-    #     selected_filial_id = request.session.get('selected_filial_id', 'super_admin')
-    #     data['selected_filial_id'] = selected_filial_id
-    #     template = 'home/superuser/super_dashboard.html'
-    #     try:
-    #         filial = Filial.objects.get(id=int(selected_filial_id)).filial_name
-    #     except:
-    #         filial = ''
-    # elif not request.user.is_superuser:
-    #     template = 'home/user/staff_dashboard.html'
-    #     admin = Administrator.objects.get(user=request.user)
-    #     selected_filial_id = admin.filial.id
-    #     filial = admin.filial.filial_name
-    # else:
-    #     return redirect('/login/')
-
-    # today = timezone.now().date()
-    # start_date = today - timedelta(days=6)
-    # attendance_stats = (
-    #     Attendance.objects
-    #     .filter(date__range=[start_date, today], employee__filial_id=selected_filial_id)
-    #     .order_by('date')
-    # )
-
-    # labels = [item['date'].strftime('%d-%m') for item in attendance_stats]
-    # values = [item['total'] for item in attendance_stats]
-    # print(len(values))
-
-    # context = {
-    #     'segment': 'dashboard',
-    #     'data': data,
-    #     "filial": filial,
-    #     'tashkent_time': tashkent_time,
-    #     'chart_labels': json.dumps(labels),
-    #     'chart_values': json.dumps(values),
-    # }
-
-    # html_template = loader.get_template(template)
-    # return HttpResponse(html_template.render(context, request))
-    # if not request.user.is_authenticated:
-    #     return redirect('/login/')
-    # data = {}
-    # template = ''
-    # late_count = 0
-    # early_leave_count = 0
-    # total_attendance_count = 0
-    # todays_attendance_count = 0
-    # early_leave_percent = 0
-    # late_percent = 0
-    # filial = None
-    # admin = None
-    # tashkent_time = timezone.localtime(timezone.now())
-    # selected_filial_id = request.session.get('selected_filial_id', 'super_admin')
-
-    # if request.user.is_superuser:
-    #     filials = Filial.objects.all()
-    #     data['filials'] = filials
-    #     template = 'home/superuser/super_dashboard.html'
-
-    # else :
-    #     try:
-    #         admin = Administrator.objects.get(user=request.user)
-    #         selected_filial_id = admin.filial.id
-    #         template = 'home/user/staff_dashboard.html'
-    #     except Administrator.DoesNotExist:
-    #         selected_filial_id = None
-
-    #     filial = Filial.objects.get(id=selected_filial_id) if selected_filial_id else None
-
-    #     today = timezone.localdate()
-    #     week_start = today - timedelta(days=6)
-
-    #     # 🔹 Bugungi kelgan xodimlar soni
-    #     todays_attendance_count = Attendance.objects.filter(
-    #         employee__filial=filial,
-    #         date=today
-    #     ).count()
-
-    #     attendances = Attendance.objects.filter(
-    #         employee__filial=filial,
-    #         date__range=[week_start, today]
-    #     ).select_related('employee')
-
-    #     for att in attendances:
-    #         total_attendance_count += 1
-    #         schedule = WorkSchedule.objects.filter(employee=att.employee).first()
-    #         if schedule:
-    #             if att.check_in and att.check_in > schedule.start:  # kech kelgan
-    #                 late_count += 1
-    #             if att.check_out and att.check_out < schedule.end:  # erta ketgan
-    #                 early_leave_count += 1
-
-    #     late_percent = (late_count / total_attendance_count * 100) if total_attendance_count > 0 else 0
-    #     early_leave_percent = (early_leave_count / total_attendance_count * 100) if total_attendance_count > 0 else 0
-
-    # context = {
-    #     'segment': 'dashboard',
-    #     'data': data,
-    #     "filial": filial.filial_name if filial is not None else "",
-    #     'tashkent_time': tashkent_time,
-    #     'todays_attendance_count': todays_attendance_count,
-    #     'late_percent': round(late_percent, 1),
-    #     'early_leave_percent': round(early_leave_percent, 1),
-    # }
 
     if not request.user.is_authenticated:
+        return redirect('/login/')
+
+    try:
+        admin_user = Administrator.objects.get(user=request.user)
+    except Administrator.DoesNotExist:
         return redirect('/login/')
     data = {}
     filial = ''
@@ -302,27 +195,24 @@ def index(request):
 
     tashkent_time = timezone.localtime(timezone.now())
     selected_filial_id = request.session.get('selected_filial_id', 'super_admin')
-    print(selected_filial_id)
-    if request.user.is_superuser:
-        filials = Filial.objects.all()
+    if admin_user.is_org_admin:
+        filials = Filial.objects.filter(organization=admin_user.organization).all()
         data['filials'] = filials
+        request.session['selected_filial_id'] = selected_filial_id
         data['selected_filial_id'] = selected_filial_id
         template = 'home/superuser/super_dashboard.html'
         try:
             filial = Filial.objects.get(id=int(selected_filial_id))
         except:
             filial = ''
-    elif not request.user.is_superuser:
-
+    elif not admin_user.is_org_admin:
         template = 'home/user/staff_dashboard.html'
-        admin = Administrator.objects.get(user=request.user)
-        filial = admin.filial
+        filial = admin_user.filial
     else:
         return redirect('/login/')
     
     if selected_filial_id  != 'super_admin':
         today = timezone.localdate()
-        print('aaaaa')
         week_start = today - timedelta(days=6)
 
         # 🔹 Bugungi kelgan xodimlar soni
@@ -401,7 +291,6 @@ def index(request):
     context['chart_labels_json'] = json.dumps(chart_labels)
     context['late_values_json'] = json.dumps(late_values)
     context['early_values_json'] = json.dumps(early_values)
-    print(context['late_values_json'])
     html_template = loader.get_template(template)
     return HttpResponse(html_template.render(context, request))
 
@@ -410,20 +299,22 @@ def index(request):
 
 @login_required(login_url="/login/")
 def employees(request):
-    administrator = None
+    try:
+        admin_user = Administrator.objects.get(user=request.user)
+    except Administrator.DoesNotExist:
+        return redirect('/login/')
     filial = ''
     data = {}
-    filials = Filial.objects.all()
+    filials = Filial.objects.filter(organization=admin_user.organization).all()
     data['filials'] = filials
     selected_filial_id = ''
-    if request.user.is_superuser:
+    if admin_user.is_org_admin:
         selected_filial_id = request.session.get('selected_filial_id', 'super_admin')
         if selected_filial_id == 'super_admin':
             return redirect('/home/')
         filial_id = selected_filial_id
     else:
-        administrator = Administrator.objects.get(user=request.user)
-        filial_id = administrator.filial.id
+        filial_id = admin_user.filial.id
     employees = Employee.objects.filter(filial_id = filial_id)
     search_query = request.GET.get('q')
     filial = Filial.objects.get(id=filial_id)
@@ -447,18 +338,23 @@ def employees(request):
 
 @login_required(login_url="/login/")
 def employee_create(request):
+    try:
+        admin_user = Administrator.objects.get(user=request.user)
+    except Administrator.DoesNotExist:
+        return redirect('/login/')
+
     filial_id = ''
     data = {}
-    filials = Filial.objects.all()
+    filials = Filial.objects.filter(organization=admin_user.organization).all()
     data['filials'] = filials
     selected_filial_id = ''
-    if request.user.is_superuser:
+    if admin_user.is_org_admin:
         selected_filial_id = request.session.get('selected_filial_id', 'super_admin')
         if selected_filial_id == 'super_admin':
             return redirect('/home/')
         filial_id = selected_filial_id
     else:
-        filial_id = Administrator.objects.get(user=request.user).filial.id
+        filial_id = admin_user.filial.id
         
 
     tashkent_time = timezone.localtime(timezone.now())
@@ -487,18 +383,23 @@ def employee_create(request):
 
 @login_required(login_url="/login/")
 def employee_detail(request, pk):
+    try:
+        admin_user = Administrator.objects.get(user=request.user)
+    except Administrator.DoesNotExist:
+        return redirect('/login/')
+
     filial_id = ''
     data = {}
-    filials = Filial.objects.all()
+    filials = Filial.objects.filter(organization=admin_user.organization).all()
     data['filials'] = filials
     selected_filial_id = ''
-    if request.user.is_superuser:
+    if admin_user.is_org_admin:
         selected_filial_id = request.session.get('selected_filial_id', 'super_admin')
         if selected_filial_id == 'super_admin':
             return redirect('/home/')
         filial_id = selected_filial_id
     else:
-        filial_id = Administrator.objects.get(user=request.user).filial.id
+        filial_id = admin_user.filial.id
     employee = Employee.objects.get(id=pk)
     tashkent_time = timezone.localtime(timezone.now())
     if employee.filial_id != int(filial_id):
@@ -532,23 +433,28 @@ class EmployeeDelete(DeleteView):
 
 @login_required(login_url="/login/")
 def schedules(request):
+    try:
+        admin_user = Administrator.objects.get(user=request.user)
+    except Administrator.DoesNotExist:
+        return redirect('/login/')
+
     filial_id = ''
     data = {}
     filial_name = ''
-    filials = Filial.objects.all()
+    filials = Filial.objects.filter(organization=admin_user.organization).all()
     data['filials'] = filials
     selected_filial_id = ''
-    if request.user.is_superuser:
+    if admin_user.is_org_admin:
         selected_filial_id = request.session.get('selected_filial_id', 'super_admin')
         if selected_filial_id == 'super_admin':
             return redirect('/home/')
         filial_id = selected_filial_id    
     else:
-        filial_id = Administrator.objects.get(user=request.user).filial.id
-        filial_name = Administrator.objects.get(user=request.user).filial.filial_name
+        filial_id = admin_user.filial.id
+        filial_name = admin_user.filial.filial_name
     tashkent_time = timezone.localtime(timezone.now())
     
-    all_schedules = WorkSchedule.objects.filter(employee__filial__id= filial_id)
+    all_schedules = WorkSchedule.objects.filter(employee__filial__id=filial_id)
     search_query = request.GET.get('q')
     if search_query:
         all_schedules = all_schedules.filter(Q(name__icontains=search_query))
@@ -567,21 +473,26 @@ def schedules(request):
 
 
 def create_schedule_for_employee(request, employee_id):
+    try:
+        admin_user = Administrator.objects.get(user=request.user)
+    except Administrator.DoesNotExist:
+        return redirect('/login/')
+
     filial_id = ''
     data = {}
     filial_name = ''
-    filials = Filial.objects.all()
+    filials = Filial.objects.filter(organization=admin_user.organization).all()
     data['filials'] = filials
     selected_filial_id = ''
     employee = get_object_or_404(Employee, id=employee_id)
-    if request.user.is_superuser:
+    if admin_user.is_org_admin:
         selected_filial_id = request.session.get('selected_filial_id', 'super_admin')
         if selected_filial_id == 'super_admin' or employee.filial_id != int(selected_filial_id):
             return redirect('/home/')
         filial_id = selected_filial_id    
     else:
-        filial_id = Administrator.objects.get(user=request.user).filial.id
-        filial_name = Administrator.objects.get(user=request.user).filial.filial_name
+        filial_id = admin_user.filial.id
+        filial_name = admin_user.filial.filial_name
     tashkent_time = timezone.localtime(timezone.now())
     if request.method == 'POST':
         form = WorkScheduleForm(request.POST)
@@ -601,30 +512,34 @@ def create_schedule_for_employee(request, employee_id):
     
 @login_required(login_url="/login/")
 def create_schedule(request):
+    try:
+        admin_user = Administrator.objects.get(user=request.user)
+    except Administrator.DoesNotExist:
+        return redirect('/login/')
+
     filial_id = ''
     data = {}
     filial_name = ''
-    filials = Filial.objects.all()
+    filials = Filial.objects.filter(organization=admin_user.organization).all()
     data['filials'] = filials
     selected_filial_id = ''
-    if request.user.is_superuser:
+    if admin_user.is_org_admin:
         selected_filial_id = request.session.get('selected_filial_id', 'super_admin')
         if selected_filial_id == 'super_admin':
             return redirect('/home/')
         filial_id = selected_filial_id
     else:
-        filial_id = Administrator.objects.get(user=request.user).filial.id
-        filial_name = Administrator.objects.get(user=request.user).filial.filial_name
+        filial_id = admin_user.filial.id
+        filial_name = admin_user.filial.filial_name
     tashkent_time = timezone.localtime(timezone.now())
     filial = Filial.objects.get(id=int(filial_id))
-    administrator = Administrator.objects.filter(filial=filial).first()
     if request.method == 'POST':
-        form = WorkScheduleWithUserForm(request.POST, admin=administrator)
+        form = WorkScheduleWithUserForm(request.POST, admin=admin_user)
         if form.is_valid():
             form.save()
             return redirect('schedules')
     else:
-        form = WorkScheduleWithUserForm(admin=administrator)
+        form = WorkScheduleWithUserForm(admin=admin_user)
     return render(request, 'home/user/workschedule/schedule_create.html', 
                   {'form': form, 
                    "filial": filial_name,
@@ -638,22 +553,27 @@ class WorkScheduleDelete(DeleteView):
 
 
 def get_report_date(request):
+    try:
+        admin_user = Administrator.objects.get(user=request.user)
+    except Administrator.DoesNotExist:
+        return redirect('/login/')
+
     report = []
     page_obj = []
     filial_id = ''
     data = {}
     filial_name = ''
-    filials = Filial.objects.all()
+    filials = Filial.objects.filter(organization=admin_user.organization).all()
     data['filials'] = filials
     selected_filial_id = ''
-    if request.user.is_superuser:
+    if admin_user.is_org_admin:
         selected_filial_id = request.session.get('selected_filial_id', 'super_admin')
         if selected_filial_id == 'super_admin':
             return redirect('/home/')
         filial_id = int(selected_filial_id)
     else:
-        filial_id = Administrator.objects.get(user=request.user).filial.id
-        filial_name = Administrator.objects.get(user=request.user).filial.filial_name
+        filial_id = admin_user.filial.id
+        filial_name = admin_user.filial.filial_name
     tashkent_time = timezone.localtime(timezone.now())
     
     if request.method == 'POST':
@@ -681,18 +601,23 @@ import openpyxl
 from django.http import HttpResponse
 
 def download_excel(request):
+    try:
+        admin_user = Administrator.objects.get(user=request.user)
+    except Administrator.DoesNotExist:
+        return redirect('/login/')
+
     filial_id = ''
     data = {}
-    filials = Filial.objects.all()
+    filials = Filial.objects.filter(organization=admin_user.organization).all()
     data['filials'] = filials
     selected_filial_id = ''
-    if request.user.is_superuser:
+    if admin_user.is_org_admin:
         selected_filial_id = request.session.get('selected_filial_id', 'super_admin')
         if selected_filial_id == 'super_admin':
             return redirect('/home/')
         filial_id = int(selected_filial_id)
     else:
-        filial_id = Administrator.objects.get(user=request.user).filial.id
+        filial_id = admin_user.filial.id
 
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
@@ -721,23 +646,28 @@ def download_excel(request):
 
 
 def employee_report(request, pk):
+    try:
+        admin_user = Administrator.objects.get(user=request.user)
+    except Administrator.DoesNotExist:
+        return redirect('/login/')
+
     employee = Employee.objects.get(id=pk)
     report = []
     page_obj = []
     filial_id = ''
     data = {}
     filial_name = ''
-    filials = Filial.objects.all()
+    filials = Filial.objects.filter(organization=admin_user.organization).all()
     data['filials'] = filials
     selected_filial_id = ''
-    if request.user.is_superuser:
+    if admin_user.is_org_admin:
         selected_filial_id = request.session.get('selected_filial_id', 'super_admin')
         if selected_filial_id == 'super_admin':
             return redirect('/home/')
         filial_id = selected_filial_id
     else:
-        filial_id = Administrator.objects.get(user=request.user).filial.id
-        filial_name = Administrator.objects.get(user=request.user).filial.filial_name
+        filial_id = admin_user.filial.id
+        filial_name = admin_user.filial.filial_name
     tashkent_time = timezone.localtime(timezone.now())
     
     if request.method == 'POST':
@@ -762,6 +692,11 @@ def employee_report(request, pk):
 
 
 def employee_download_excel(request, pk):
+    try:
+        admin_user = Administrator.objects.get(user=request.user)
+    except Administrator.DoesNotExist:
+        return redirect('/login/')
+
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
 

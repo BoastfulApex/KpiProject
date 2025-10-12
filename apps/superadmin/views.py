@@ -1,7 +1,7 @@
 import datetime
 from django.db.models import Q
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseForbidden
 from django.template import loader
 from django.core.paginator import Paginator
 from django.shortcuts import redirect, render
@@ -11,16 +11,15 @@ from apps.main.forms import *
 from django.views.generic.edit import CreateView, DeleteView, UpdateView
 from django.urls import reverse_lazy
 import requests
+from apps.superadmin.decorators import org_admin_required
 
 
-@login_required(login_url="/login/")
+@org_admin_required
 def filials(request):
     data = {}
+    admin_user = Administrator.objects.get(user=request.user)
     
-    if not request.user.is_superuser:
-        return redirect('/login/')
-    
-    all_filials = Filial.objects.all()
+    all_filials = Filial.objects.filter(organization=admin_user.organization).all()
     search_query = request.GET.get('q')
     data['filials'] = all_filials
     request.session['selected_filial_id'] = 'super_admin'
@@ -34,24 +33,30 @@ def filials(request):
         "segment": "filials",
         'data': data
     }
-    
     html_template = loader.get_template('home/superuser/filials.html')
     return HttpResponse(html_template.render(context, request))
 
-
-@login_required(login_url="/login/")
+@org_admin_required
 def filial_create(request):
-    data = {}
-    filials = Filial.objects.all()
-    data['filials'] = filials
-    request.session['selected_filial_id'] = 'super_admin'
-    if not request.user.is_superuser:
+    try:
+        admin_user = Administrator.objects.get(user=request.user)
+    except Administrator.DoesNotExist:
+        return HttpResponseForbidden("Siz administrator emassiz.")
+
+    if not admin_user.is_org_admin:
         return redirect('/login/')
+    data = {}
+    filials = Filial.objects.filter(organization=admin_user.organization).all()
+    data['filials'] = filials
+    print(filials)
+    request.session['selected_filial_id'] = 'super_admin'
 
     if request.method == 'POST':
-        form = FilialForm(request.POST, request.FILES)
+        form = FilialForm(request.POST)
         if form.is_valid():
-            form.save()
+            filial = form.save(commit=False)
+            filial.organization = admin_user.organization  # avtomatik bog‘lanadi
+            filial.save()
             return redirect('admin_filials')
     else:
         form = FilialForm()
@@ -61,15 +66,13 @@ def filial_create(request):
                   {'form': form,  "segment": "filials", 'data': data})
 
 
-@login_required(login_url="/login/")
+@org_admin_required
 def filial_detail(request, pk):
+    admin_user = Administrator.objects.get(user=request.user)    
     data = {}
-    filials = Filial.objects.all()
+    filials = Filial.objects.filter(organization=admin_user.organization).all()
     data['filials'] = filials
-    request.session['selected_filial_id'] = 'super_admin'
-    
-    if not request.user.is_superuser:
-        return redirect('/login/')
+    request.session['selected_filial_id'] = 'super_admin'    
 
     filial = Filial.objects.get(id=pk)
 
@@ -92,16 +95,15 @@ class FilialDelete(DeleteView):
     success_url = reverse_lazy('admin_filials')
 
 
-@login_required(login_url="/login/")
+@org_admin_required
 def admin_list(request):
-    if not request.user.is_superuser:
-        return redirect('/login/')
+    admin_user = Administrator.objects.get(user=request.user)
     data = {}
     filials = Filial.objects.all()
     data['filials'] = filials
         
     request.session['selected_filial_id'] = 'super_admin'
-    admins = Administrator.objects.select_related('user', 'filial')
+    admins = Administrator.objects.select_related('user', 'filial').filter(organization=admin_user.organization, is_org_admin=False).all()
     search_query = request.GET.get('q')
     if search_query:
         admins = admins.filter(
@@ -119,22 +121,22 @@ def admin_list(request):
     return render(request, 'home/superuser/adminstrators.html', context)
 
 
-@login_required(login_url="/login/")
+@org_admin_required
 def admin_create(request):
+    admin_user = Administrator.objects.get(user=request.user)
     data = {}
-    filials = Filial.objects.all()
+    filials = Filial.objects.filter(organization=admin_user.organization).all()
     data['filials'] = filials
     request.session['selected_filial_id'] = 'super_admin'
-    if not request.user.is_superuser:
-        return redirect('/login/')
-
     if request.method == 'POST':
-        form = AdminUserForm(request.POST)
+        form = AdminUserForm(request.POST, admin_user=request.admin_user)
         if form.is_valid():
-            form.save()
+            admin = form.save()
+            admin.organization = admin_user.organization  # avtomatik bog‘lanadi
+            admin.save()
             return redirect('admin_adminstrators')
     else:
-        form = AdminUserForm()
+        form = AdminUserForm(admin_user=admin_user)
 
     return render(request, 'home/superuser/adminstrator_create.html', {
         'form': form,
@@ -143,11 +145,9 @@ def admin_create(request):
     })
 
     
-@login_required(login_url="/login/")
+@org_admin_required
 def admin_detail(request, pk):
-    if not request.user.is_superuser:
-        return redirect('/login/')
-
+    admin_user = Administrator.objects.get(user=request.user)
     admin = Administrator.objects.get(id=pk)
     data = {}
     filials = Filial.objects.all()
@@ -155,12 +155,12 @@ def admin_detail(request, pk):
     request.session['selected_filial_id'] = 'super_admin'
     
     if request.method == 'POST':
-        form = AdminUserForm(request.POST, request.FILES, instance=admin)
+        form = AdminUserForm(request.POST, request.FILES, instance=admin, admin_user=admin_user)
         if form.is_valid():
             form.save()
             return redirect('admin_adminstrators')
     else:
-        form = AdminUserForm(instance=admin)
+        form = AdminUserForm(instance=admin, admin_user=admin_user)
 
     return render(request, 'home/superuser/adminstrator_detail.html', {
         'form': form,
@@ -168,6 +168,7 @@ def admin_detail(request, pk):
         'admin': admin,
         'data': data
     })
+
     
 class AdminstratorDeleteView(DeleteView):
     model = Administrator
@@ -176,23 +177,23 @@ class AdminstratorDeleteView(DeleteView):
 
 
 
+@org_admin_required
 def select_filial(request, filial_id):
-    if request.user.is_superuser:
+    admin_user = Administrator.objects.get(user=request.user)
+    if admin_user.is_org_admin == True:
         request.session['selected_filial_id'] = filial_id
     return redirect('home')
 
 
-@login_required(login_url="/login/")
+@org_admin_required
 def locations(request):
     data = {}
     
-    if not request.user.is_superuser:
-        return redirect('/login/')
-    
-    all_filials = Filial.objects.all()
+    admin_user = Administrator.objects.get(user=request.user)    
+    all_filials = Filial.objects.filter(organization=admin_user.organization).all()
     search_query = request.GET.get('q')
     data['filials'] = all_filials
-    locations = Location.objects.all()
+    locations = Location.objects.filter(organization=admin_user.organization).all()
     request.session['selected_filial_id'] = 'super_admin'
     if search_query:
         locations = locations.filter(Q(address__icontains=search_query))
@@ -232,14 +233,15 @@ def get_location_name(lat, lon):
     except GeocoderTimedOut:
         return "Geocoding vaqti tugadi"
     
-    
+@org_admin_required    
 def create_location(request):
+    admin_user = Administrator.objects.get(user=request.user)
     data = {}
-    filials = Filial.objects.all()
+    filials = Filial.objects.filter(organization=admin_user.organization).all()
     data['filials'] = filials
 
     if request.method == 'POST':
-        form = LocationForm(request.POST)
+        form = LocationForm(request.POST, admin_user=admin_user)
         if form.is_valid():
             filial = form.cleaned_data.get('filial')
 
@@ -255,11 +257,12 @@ def create_location(request):
             name = get_location_name(instance.latitude, instance.longitude)
             instance.name = name or "Unknown location"
             instance.address = name
+            instance.organization = admin_user.organization  # avtomatik bog‘lanadi
             instance.save()
 
             return redirect('admin_locations')  # o'zingiz xohlagan URL nomi
     else:
-        form = LocationForm()
+        form = LocationForm(admin_user=admin_user)
 
     return render(request, 'home/superuser/location_create.html', {'form': form, 'data': data, 'segment': 'locations'})
 
