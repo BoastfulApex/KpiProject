@@ -99,7 +99,7 @@ class FilialDelete(DeleteView):
 def admin_list(request):
     admin_user = Administrator.objects.get(user=request.user)
     data = {}
-    filials = Filial.objects.all()
+    filials = Filial.objects.filter(organization=admin_user.organization).all()
     data['filials'] = filials
         
     request.session['selected_filial_id'] = 'super_admin'
@@ -150,7 +150,7 @@ def admin_detail(request, pk):
     admin_user = Administrator.objects.get(user=request.user)
     admin = Administrator.objects.get(id=pk)
     data = {}
-    filials = Filial.objects.all()
+    filials = Filial.objects.filter(organization=admin_user.organization).all()
     data['filials'] = filials
     request.session['selected_filial_id'] = 'super_admin'
     
